@@ -1,11 +1,13 @@
-Package: ordbetaregpack
+Package: ordbetareg
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Ordered Beta Regression Models With brms
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Author: Robert Kubinec <rmk7@nyu.edu>
+Maintainer: Robert Kubinec <rmk7@nyu.edu>
+Description: This package implements ordered beta regression models using brms as a backend. 
+   These models are for modeling continuous variables with upper and lower bounds, such as
+   VAS scales, dose-response relationships and indexes. Hierarchical, dynamic and multivariate
+   specifications also implemented via brms.
+License: MIT
 Encoding: UTF-8
 LazyData: true
