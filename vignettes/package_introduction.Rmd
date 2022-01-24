@@ -288,7 +288,7 @@ data_pred %>%
 
 ```
 
-We can see that the female distribution is more clustered around a central value -- 0.75 -- than are men, who are somewhat more likely to be near the extremes of the data. However, the movement is modest, as the value of the coefficient suggests. Regression on `phi` is useful when examining polarizing versus clustering dynamics in the data.
+We can see that the female distribution is more clustered around a central value -- 0.5 -- than are men, who are somewhat more likely to be near the extremes of the data. However, the movement is modest, as the value of the coefficient suggests. Regression on `phi` is useful when examining polarizing versus clustering dynamics in the data.
 
 # Simulate Data
 
