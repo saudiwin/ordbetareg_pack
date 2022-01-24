@@ -67,6 +67,7 @@
 #'  functions [brms::set_prior] or [brms::prior_string] with appropriate
 #'  values.
 #' @param ... All other arguments passed on to the `brm` function
+#' @return A `brms` object fitted with the ordered beta regression distribution.
 #' @importFrom brms brm
 #' @importForm brms bf
 #' @export
@@ -266,7 +267,7 @@ ordbetareg <- function(formula=NULL,
     phi <- draws$dpars$phi
     cutzero <- draws$dpars$cutzero
     cutone <- draws$dpars$cutone
-    N <- length(phi)
+    N <- drqws$ndraws
 
     thresh1 <- cutzero
     thresh2 <- cutzero + exp(cutone)
