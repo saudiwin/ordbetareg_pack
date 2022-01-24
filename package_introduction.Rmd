@@ -1,0 +1,315 @@
+---
+title: "Introduction to `ordbetareg`"
+author: "Robert Kubinec"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to ordbetareg}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+
+options(rmarkdown.html_vignette.check_title = FALSE)
+
+library(ordbetareg)
+library(dplyr)
+library(ggplot2)
+library(haven)
+library(brms)
+library(tidyr)
+
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+```
+
+
+# Overview
+
+This notebook contains instructions for running the ordered beta regression model in the R package `ordbetareg`, which is a front-end to `brms`, a very powerful regression modeling package based on the [Stan Hamiltonian Markov Chain Monte Carlo](https://mc-stan.org/) sampler. I do not show only a small part of the features which are available via `brms`, and I refer the user to the [copious documentation with the package](https://paul-buerkner.github.io/brms/). Suf
+
+The ordered beta regression model is designed explicitly for slider scale/visual analog scale data of the type you will often find in online surveys among other areas. I refer you to a paper on the model if you are not familiar with it: https://osf.io/preprints/socarxiv/2sx6y/.
+
+The ordered beta regression model is not natively supported in `brms` and so instead I define it here using the [custom response option](https://cran.r-project.org/web/packages/brms/vignettes/brms_customfamilies.html) of `brms`.
+
+```{r runmod}
+
+# whether to run models from scratch
+run_model <- F
+
+```
+
+
+# Data Preparation
+
+First, I load data from the Pew Forum that asks a question about respondents' views towards college professors (for a more complete explication, see the paper referenced above).
+
+```{r load_data}
+
+data("pew")
+
+pew %>% 
+  ggplot(aes(x=as.numeric(therm))) +
+  geom_histogram(bins=100) +
+  theme_minimal() + 
+  theme(panel.grid=element_blank()) +
+  scale_x_continuous(breaks=c(0,25,50,75,100),
+                     labels=c("0","Colder","50","Warmer","100")) +
+  ylab("") +
+  xlab("") +
+  labs(caption=paste0("Figure shows the distribution of ",sum(!is.na(pew$therm))," non-missing survey responses."))
+
+```
+
+The distributions of feelings towards college professors contains both degenerate (0 and 100) and continuous responses between 0 and 100. To model it, we first need to rescale the outcome so that it will have bounds between 0 and 1 instead of 0 and 100. This is done very easily by subtracting the minimum value, in this case 0, and then dividing by the difference between the minimum and maximum (i.e., 100). I also do some other data processing tasks:
+
+```{r munge_data}
+
+model_data <- select(pew,therm,age="F_AGECAT_FINAL",
+                        sex="F_SEX_FINAL",
+                        income="F_INCOME_FINAL",
+                        ideology="F_IDEO_FINAL",
+                        race="F_RACETHN_RECRUITMENT",
+                        education="F_EDUCCAT2_FINAL",
+                     region="F_CREGION_FINAL",
+                        approval="POL1DT_W28",
+                       born_again="F_BORN_FINAL",
+                       relig="F_RELIG_FINAL",
+                        news="NEWS_PLATFORMA_W28") %>% 
+  mutate(therm=(therm - min(therm,na.rm = T))/(max(therm,na.rm=T) - 
+                                                       min(therm,na.rm = T))) %>% 
+    mutate_at(c("race","ideology","income","approval","sex","education","born_again","relig"), function(c) {
+      factor(c, exclude=levels(c)[length(levels(c))])
+    }) %>% 
+    # need to make these ordered factors for BRMS
+    mutate(education=ordered(education),
+           income=ordered(income))
+
+```
+
+The completed dataset has `r nrow(model_data)` observations. 
+
+# Define Custom Family
+
+To model this data in `brms`, I have to define some code using the `custom_family` function to create a new distribution, `ord_beta_reg`. You need to run the following code in R before trying to use the custom family as it defines the log-likelihood and the priors (you can of course add additional priors of your own). You can access this code as an R script `define_ord_betareg.R` in the [Github repository containing this Rmarkdown file](https://github.com/saudiwin/ordbetareg).
+
+# Run In BRMS
+
+Given these new functions, we can then run a `brms` model as usual. The one catch is that we need to include the `priors` object in the `priors` argument and the `stanvars` object in the `stanvars` argument of the function, which comes from the code block above. The second and *very important* item is that the model formula must start with `0 + Intercept` for the independent (right-hand side) variables. You can add anything you want after that first term. This is to ensure no multi-collinearity between the ordinal cutpoints in the model and the intercept.
+
+Other than that, everything is the same and you can use any cool `brms` features. To demonstrate some of these, I will model education and income as ordinal predictors by using the `mo()` function. By doing so, we can get a single effect for education and income instead of having to use dummies for separate education/income categories. As a result, I can include an interaction between the two variables to see if wealthier more educated people have better views towards college professors than poorer better educated people. Finally, I include varying (random) census region intercepts.
+
+One note is that I use the `cmdstanr` backend for `brms` to use the latest version of Stan, but you can remove that option to use the Stan that comes with `brms` (`rstan`).
+
+```{r run_brms}
+
+if(run_model) {
+  
+  ord_fit_mean <- ordbetareg(formula=therm ~ mo(education)*mo(income) +
+                               (1|region), 
+                       data=model_data,
+                cores=2,chains=2,
+                refresh=0,
+                # NOTE: remove these two options if you don't have 
+                # cmdstanr set up (or you don't have 5 cores to burn per chain)
+                threads=threading(5),
+                backend="cmdstanr")
+  
+} else {
+  
+  data("ord_fit_mean")
+  
+}
+```
+
+The running time for this model, which has pretty complicated predictors, is about 7 minutes. So the model is currently robust enough to handle datasets of reasonable size. Performance will improve if I can get the model into `brms` proper. The one divergent transition referenced above is due to the well-known funnel problem of the variance of the random intercepts, and I will ignore it for the purposes of this vignette.
+
+# Post-Estimation
+
+The first thing we can do is extract the model cutpoints and overlay them on the empirical distribution to see how the model is dividing the outcome into discrete-ish categories. We have to do transformation of the cutpoints using the inverse logit function in R (`plogis`) to get back values in the scale of the response, and I have to exponentiate and add the first cutpoint to get the correct value for the second cutpoint:
+
+```{r plot_cut}
+
+all_draws <- extract_draws(ord_fit_mean)
+
+cutzero <- plogis(all_draws$dpars$cutzero)
+cutone <- plogis(all_draws$dpars$cutzero + exp(all_draws$dpars$cutone))
+
+pew %>% 
+  ggplot(aes(x=therm)) +
+  geom_histogram(bins=100) +
+  theme_minimal() + 
+  theme(panel.grid=element_blank()) +
+  scale_x_continuous(breaks=c(0,25,50,75,100),
+                     labels=c("0","Colder","50","Warmer","100")) +
+  geom_vline(xintercept = mean(cutzero)*100,linetype=2) +
+  geom_vline(xintercept = mean(cutone)*100,linetype=2) +
+  ylab("") +
+  xlab("") +
+  labs(caption=paste0("Figure shows the distribution of ",sum(!is.na(pew$therm))," non-missing survey responses."))
+
+
+```
+
+We can see in the plot above that the model does a good job isolating values that are very close to 0 and 1 from values that are more continuous in nature. 
+
+We can plot the full predictive distribution relative to the original outcome:
+
+```{r post_predict}
+
+pp_check(ord_fit_mean) + theme_minimal()
+
+```
+
+We can see the coefficients from the model with the following command (these are on the logit scale with the exception of phi, the scale/dispersion parameter):
+
+```{r coef_plot}
+plot(ord_fit_mean,ask=F,theme=theme(panel.grid=element_blank(),
+                                panel.background = element_blank()))
+```
+
+# Marginal Effects
+
+We can also look at marginal effects, or the average change in the outcome given a unit change in one of the variables, by using the `conditional_effects` function in `brms`. This function plots the effect of `income` and `education` separately and then the interaction of the two.
+
+```{r marg_effect}
+
+plot(conditional_effects(ord_fit_mean),
+     theme=theme(axis.text.x = element_text(angle=90),
+                                               panel.grid=element_blank(),
+                                               panel.background = element_blank()),ask=F)
+
+```
+
+Broadly speaking, these plots show that richer people have less favorable views on college professors, less educated people have less favorable views towards college professors, and the effect is even stronger if we consider the interaction. Wealthier less educated people are dramatically more likely to have less favorable views towards college professors than poor people with a postgraduate education. The difference is equivalent to 0.4, or 40 points on the original 0 to 100 scale.
+
+# Understanding Clustering/Polarization of Respondents
+
+As I explain in the paper, one of the main advantages of using a Beta regression model is its ability to model the dispersion among respondents not just in terms of variance (i.e. heteroskedasticity) but also the shape of dispersion, whether it is U or inverted-U shaped. Conceptually, a U shape would imply that respondents are bipolar, moving towards the extremes. An inverted-U shape would imply that respondents tend to cluster around a central value. We can predict these responses conditionally in the sample by adding predictors for `phi`, the scale/dispersion parameter in the Beta distribution. Higher values of `phi` imply a uni-modal distribution clustered around a central value, with increasing `phi` implying more clustering. Lower values of `phi` imply a bi-modal distribution with values at the extremes. Notably, these effects are calculated independently of the expected value, or mean, of the distribution, so values of `phi` will produce different shapes depending on the average value. 
+
+The one change we need to make to fit this model is to add a formula predicting `phi` in the code below (this formula does not need the `0 + Intercept` syntax of the main model). We wrap both formulas in the `bf` function to indicate they are both distributional parameters. We also need to change the prior argument to `priors_phireg` as the priors of the model have changed as a result of adding predictors. For this model, we will put in an interaction between age and sex to see if younger/older men/women tend to have clustered or more heterogenous views on college professors. To make the model run a bit faster, we drop the `mo` terms around `education` and `income` so that they are evaluated as dummy variables.
+
+
+```{r run_brms_phi}
+
+if(run_model) {
+  
+  ord_fit_phi <- ordbetareg(bf(therm ~ 0, 
+                phi ~ age*sex),
+                phi_reg = T,
+                data=model_data,
+                cores=2,chains=2,
+                refresh=100,
+                # again, remove these options if you don't have cmdstanr
+                # installed or don't want to use multiple cores
+                threads=threading(5),
+                backend="cmdstanr")
+  
+} else {
+  
+  data("ord_fit_phi")
+  
+}
+
+
+```
+
+We cannot use the `conditional_effects` option to plot because the dispersion parameter `phi` by definition does not affect the expected outcome (i.e., the average). Instead, we can uses the regular `plot` function to visualize the parameters:
+
+```{r plot_phi}
+
+plot(ord_fit_phi,pars = "phi",
+     fixed = F,ask=F,combo=c("intervals","hist"))
+
+```
+
+There is weak to moderate evidence in this plot that women have more homogenous views and that older women have more homogenous views than younger women. However, there is substantial uncertainty in this estimate and the estimate itself is not very large. We are using the log link for `phi`, so to get the value of the effect on `phi`, we can exponentiate the coefficient, i.e. `exp(0.1)=``r round(exp(0.1),2)`. We can compare what the distributions look like by plotting histograms of simulated outcomes using the Beta distribution and the average response in our data, which is `r round(mean(model_data$therm,na.rm=T),2)`. We will examine a 1-unit change in `phi` (much larger than our estimated effects) from 2 to 3 by using the average response for `mu` and plotting the density of both distributions:
+
+```{r plot_phi_sim}
+
+# parameterization of beta distribution in terms of mu/phi (mean/dispersion)
+rbeta_mean <- function(N,mu,phi) {
+  rbeta(N,mu*phi,(1-mu)*phi)
+}
+
+tibble(phi_small=rbeta_mean(10000,mean(model_data$therm,na.rm=T),2),
+       phi_big=rbeta_mean(10000,mean(model_data$therm,na.rm=T),3)) %>% 
+  gather("phi_type","simulated_value") %>% 
+  ggplot(aes(x=simulated_value)) +
+  geom_density(alpha=0.5,aes(fill=phi_type)) +
+  theme(panel.background = element_blank(),
+        panel.grid=element_blank())
+
+```
+
+We can see that the `phi_big` distribution is more clustered around a central value while `phi_small` shows more movement towards the extremes of the distribution. However, the movement is modest, as the value of the coefficient suggests.
+
+# Simulate Data
+
+Finally, we can also simulate data from the ordered beta regression model with the `sim_ordbeta` function. This is useful either for examining how different parameters interact with each other, or more generally for power calculation by iterating over different possible sample sizes. I demonstrate the function here, though note that the vignette loads saved simulation results unless `run_model` is set to TRUE. Because each simulation draw has to estimate a model, it can take some time to do calculations. Using multiple cores a la the `cores` option is strongly encouraged to reduce processing time. 
+
+To access the data simulated for each run, the `return_data=TRUE` option can be set. To get a single simulated dataset, simply use this option combined with a single iteration and set of parameter values. The data are saved as a list in the column `data` in the returned data frame. The chunk below examines the first 10 rows of a single simulated dataset (note that the rows are repeated `k` times for each iteration, while there is one unique simulated dataset per iteration). Each predictor is listed as a `Var` column from 1 to `k`, while the simulated outcome is in the `outcome` column.
+
+```{r check_data}
+
+  single_data <- sim_ordbeta(N=100,iter=1,
+                             return_data=T)
+
+# examine the first dataset
+
+knitr::kable(head(single_data$data[[1]]))
+
+```
+
+By default, the function simulates continuous predictors. To simulate a binary variables, such as in a standard experimental design, use the `beta_type` function to specify `"binary"` predictors and `treat_assign` to determine the proportion assigned to treatment for each predictor. For a standard design with only one treatment variable, we'll also specify that `k=1` for a single covariate. Finally, to estimate a reasonable treatment effect, we will specify that `beta_coef=0.5`, which equals an increase of .5 on the logit scale. While it can be tricky to know a priori what the marginal effect will be (i.e., the actual change in the outcome), the function will calculate marginal effects and report them, so you can play with other options to see what gets you marginal effects/treatment effects of interest.
+
+```{r sim_data_full}
+
+if(run_model) {
+  
+  sim_data <- sim_ordbeta(N=c(250,500,750),
+                          k=1,
+                          beta_coef = .5,
+                          iter=100,cores=10,
+                          beta_type="binary",
+                          treat_assign=0.3)
+  
+} else {
+  
+  data("sim_data")
+  
+}
+
+
+```
+
+For example, in the simulation above, the returned data frame stores the true marginal effect in the `marg_eff` column, and lists it as `r round(sim_data$marg_eff[1], 3)`, which is quite a large effect for a $[0,1]$ outcome. The following plot shows some of the summary statistics derived by aggregating over the iterations of the simulation. Some of the notable statistics that are included are power (for all covariates $k$), S errors (wrong sign of the estimated effect) and M errors (magnitude of bias). As can be seen, issues of bias decline markedly for this treatment effect size and a sample of 500 or greater has more than enough power.
+
+```{r sim_plot}
+
+sim_data %>% 
+    select(`Proportion S Errors`="s_err",N,Power="power",
+         `M Errors`="m_err",Variance="var_marg") %>% 
+  gather(key = "type",value="estimate",-N) %>%
+  ggplot(aes(y=estimate,x=N)) +
+  #geom_point(aes(colour=model),alpha=0.1) +
+  stat_summary(fun.data="mean_cl_boot") + 
+  ylab("") +
+  xlab("N") +
+  scale_color_viridis_d() +
+  facet_wrap(~type,scales="free_y",ncol = 2) +
+  labs(caption=stringr::str_wrap("Summary statistics calculated as mean with bootstrapped confidence interval from simulation draws. M Errors  and S errors are magnitude of bias (+1 equals no bias) and incorrect sign of the estimated marginal effect respectively. Variance refers to estimated posterior variance (uncertainty) of the marginal effect(s).",width=50)) +
+  guides(color=guide_legend(title=""),
+         linetype=guide_legend(title="")) +
+  theme_minimal() +
+  theme(plot.caption = element_text(size=7),
+        axis.text.x=element_text(size=8))
+
+```
+
+While the `sim_ordbeta` function has the ability to iterate over `N`, it is of course possible to do more complex experiments by wrapping the function in a loop and passing different values of other parameters, such as `treat_assign`.
+
