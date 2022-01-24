@@ -44,7 +44,7 @@ The ordered beta regression model is designed explicitly for data with upper and
 
 If you use the model in a paper, please cite it as:
 
-Kubinec, Robert. "Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds." **Political Analysis.** 2022. Forthcoming.
+Kubinec, Robert. "Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds." *Political Analysis.* 2022. Forthcoming.
 
 ```{r runmod}
 
