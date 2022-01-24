@@ -21,5 +21,9 @@ Depends:
     tidyr
 Suggests: 
     rmarkdown,
-    knitr
+    knitr,
+    ggplot2,
+    modelsummary,
+    marginaleffects,
+    haven
 VignetteBuilder: knitr
