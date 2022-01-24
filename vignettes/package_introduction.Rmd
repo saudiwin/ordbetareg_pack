@@ -12,7 +12,8 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  fig.align="center"
 )
 options(rmarkdown.html_vignette.check_title = FALSE)
 ```
@@ -177,6 +178,8 @@ We can see the coefficients from the model in table formusing the `modelsummary`
 
 ```{r coef_plot}
 
+library(modelsummary)
+
 modelsummary(ord_fit_mean,statistic = "conf.int",
                           metrics = "RMSE",
                           coef_map=c("bsp_moeducation"="Education",
@@ -263,20 +266,29 @@ to_predict <- bind_rows(female_data,
   filter(!is.na(age))
 
 pred_post <- posterior_predict(ord_fit_phi,
-                               newdata=to_predict,
-                               draw_ids=c(1:100))
+                               newdata=to_predict)
 
-tibble(phi_small=rbeta_mean(10000,mean(model_data$therm,na.rm=T),2),
-       phi_big=rbeta_mean(10000,mean(model_data$therm,na.rm=T),3)) %>% 
-  gather("phi_type","simulated_value") %>% 
-  ggplot(aes(x=simulated_value)) +
-  geom_density(alpha=0.5,aes(fill=phi_type)) +
+# better with iterations as rows
+
+pred_post <- t(pred_post)
+colnames(pred_post) <- 1:2000
+
+# need to convert to a data frame
+
+data_pred <- as_tibble(pred_post) %>% 
+  mutate(sex=to_predict$sex,
+         age=to_predict$age) %>% 
+  gather(key="iter",value='estimate',-sex,-age)
+
+data_pred %>% 
+  ggplot(aes(x=estimate)) +
+  geom_density(alpha=0.5,aes(fill=sex)) +
   theme(panel.background = element_blank(),
         panel.grid=element_blank())
 
 ```
 
-We can see that the `phi_big` distribution is more clustered around a central value while `phi_small` shows more movement towards the extremes of the distribution. However, the movement is modest, as the value of the coefficient suggests.
+We can see that the female distribution is more clustered around a central value -- 0.75 -- than are men, who are somewhat more likely to be near the extremes of the data. However, the movement is modest, as the value of the coefficient suggests. Regression on `phi` is useful when examining polarizing versus clustering dynamics in the data.
 
 # Simulate Data
 
@@ -330,6 +342,7 @@ sim_data %>%
   stat_summary(fun.data="mean_cl_boot") + 
   ylab("") +
   xlab("N") +
+  scale_x_continuous(breaks=c(250,500,750)) +
   scale_color_viridis_d() +
   facet_wrap(~type,scales="free_y",ncol = 2) +
   labs(caption=stringr::str_wrap("Summary statistics calculated as mean with bootstrapped confidence interval from simulation draws. M Errors  and S errors are magnitude of bias (+1 equals no bias) and incorrect sign of the estimated marginal effect respectively. Variance refers to estimated posterior variance (uncertainty) of the marginal effect(s).",width=50)) +

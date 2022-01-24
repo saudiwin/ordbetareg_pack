@@ -267,7 +267,7 @@ ordbetareg <- function(formula=NULL,
     phi <- draws$dpars$phi
     cutzero <- draws$dpars$cutzero
     cutone <- draws$dpars$cutone
-    N <- drqws$ndraws
+    N <- draws$ndraws
 
     thresh1 <- cutzero
     thresh2 <- cutzero + exp(cutone)
