@@ -174,7 +174,7 @@ pp_check(ord_fit_mean) + theme_minimal()
 
 ```
 
-We can see the coefficients from the model in table formusing the `modelsummary` package, which has reasonable (though not perfect) support for `brms` models. We'll specify to include only confidence intervals as other frequentist statistics have no Bayesian analogue (i.e. p-values). We'll also specify only the main effects of the ordinal predictors, and give the more informative names. 
+We can see the coefficients from the model in table formusing the `modelsummary` package, which has reasonable (though not perfect) support for `brms` models. We'll specify to include only confidence intervals as other frequentist statistics have no Bayesian analogue (i.e. p-values). We'll also specify only the main effects of the ordinal predictors, and give them more informative names. 
 
 ```{r coef_plot}
 
@@ -187,7 +187,7 @@ modelsummary(ord_fit_mean,statistic = "conf.int",
                                      "bsp_moeducation:moincome"="EducationXIncome"))
 ```
 
-`modelsummary` tables have many more options can be output to both html and latex formats. 
+`modelsummary` tables have many more options, including output to both html and latex formats. 
 
 # Marginal Effects
 
