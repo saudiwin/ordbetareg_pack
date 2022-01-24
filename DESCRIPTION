@@ -19,3 +19,7 @@ Depends:
     dplyr,
     brms,
     tidyr
+Suggests: 
+    rmarkdown,
+    knitr
+VignetteBuilder: knitr
