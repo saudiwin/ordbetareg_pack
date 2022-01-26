@@ -8,7 +8,7 @@ Description: This package implements ordered beta regression models using brms a
    These models are for modeling continuous variables with upper and lower bounds, such as
    VAS scales, dose-response relationships and indexes. Hierarchical, dynamic and multivariate
    specifications also implemented via brms.
-License: MIT
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
@@ -18,12 +18,14 @@ Depends:
     faux,
     dplyr,
     brms,
-    tidyr
+    tidyr,
+    stats
 Suggests: 
     rmarkdown,
     knitr,
     ggplot2,
     modelsummary,
     marginaleffects,
-    haven
+    haven,
+    stringr
 VignetteBuilder: knitr

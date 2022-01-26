@@ -73,6 +73,9 @@ values.}
 
 \item{...}{All other arguments passed on to the \code{brm} function}
 }
+\value{
+A \code{brms} object fitted with the ordered beta regression distribution.
+}
 \description{
 This function allows you to estimate an ordered beta regression model
 via a formula syntax.
@@ -94,6 +97,6 @@ to use the \link[brms:set_prior]{brms::set_prior} function by specifying an indi
 to the \code{extra_prior} argument.
 
 This function will also automatically normalize the outcome so that it
-lies in the \link{0,1} interval, as required by beta regression. For furthur
+lies in the \[0,1\] interval, as required by beta regression. For furthur
 information, see the documentation for the \link{normalize} function.
 }

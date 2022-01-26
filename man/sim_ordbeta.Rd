@@ -14,6 +14,7 @@ sim_ordbeta(
   cutpoints = c(-1, 1),
   beta_coef = NULL,
   beta_type = "continuous",
+  treat_assign = 0.5,
   return_data = FALSE,
   seed = as.numeric(Sys.time()),
   ...
@@ -47,6 +48,12 @@ from -1 to 1 for each predictor.}
 \item{beta_type}{Can be either \code{continuous} or \code{binary}. Use the latter
 for conventional treatments with two values.}
 
+\item{treat_assign}{If \code{beta_type} is set to \code{binary},
+you can use this parameter to set the proportion
+of \code{N} assigned to treatment. By default,
+the parameter is set to 0.5 for
+equal/balanced treatment control groups.}
+
 \item{return_data}{Whether to return the simulated dqta as a list
 in the \code{data} column of the returned data frame.}
 
@@ -75,6 +82,6 @@ via simulating the ordered beta regression model.
 This function implements the simulation found in Kubinec (2022). This
 simulation allows you to vary the sample size, number & type of predictors,
 values of the predictors (or treatment values), correlation between
-predictors, and the power to target. The function returns a data frame that
-can be plotted with the \link{plot_sim} function.
+predictors, and the power to target. The function returns a data frame
+with one row per simulation draw and covariate \code{k}.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/preparation.R
 \name{normalize}
 \alias{normalize}
-\title{Normalize Outcome/Response to \link{0,1} Interval}
+\title{Normalize Outcome/Response to \[0,1\] Interval}
 \usage{
 normalize(outcome)
 }
@@ -23,7 +23,7 @@ to have 0 as the lower bound and 1 as the upper bound.
 Beta regression can only be done with a response that is continuous with a
 lower bound of 0 and an upper bound of 1. However, it is
 straightforward to transform any lower and upper-bounded continuous
-variable to the \link{0,1} interval. This function does the transformation
+variable to the \[0,1\] interval. This function does the transformation
 and saves the original bounds as attributes so that the bounds can be
 reverse-transformed.
 }
@@ -31,7 +31,7 @@ reverse-transformed.
 # set up arbitrary upper and lower-bounded vector
 outcome <- runif(1000, min=-33, max=445)
 
-# normalize to [0,1]
+# normalize to \\[0,1\\]
 
 trans_outcome <- normalize(outcome=outcome)
 summary(trans_outcome)

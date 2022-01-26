@@ -8,7 +8,7 @@
 A data frame with 140 variables and 2,538 observations.
 }
 \source{
-\link{https://www.pewresearch.org/social-trends/dataset/american-trends-panel-wave-28/}
+https://www.pewresearch.org/social-trends/dataset/american-trends-panel-wave-28/]
 }
 \usage{
 pew

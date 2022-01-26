@@ -27,6 +27,7 @@ library(ggplot2)
 library(haven)
 library(brms)
 library(tidyr)
+library(stringr)
 
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -114,7 +115,7 @@ If you want to use some of `brms` more powerful techniques, such as multivariate
 
 To demonstrate some of the power of using `brms` as a regression engine, I will model education and income as ordinal predictors by using the `mo()` function in the formula definition. By doing so, we can get a single effect for education and income instead of having to use dummies for separate education/income categories. As a result, I can include an interaction between the two variables to see if wealthier more educated people have better views towards college professors than poorer better educated people. Finally, I include varying (random) census region intercepts.
 
-```{r run_brms}
+```{r run_ordbetareg}
 
 if(run_model) {
   
@@ -143,7 +144,7 @@ The first thing we can do is extract the model cutpoints and overlay them on the
 
 ```{r plot_cut}
 
-all_draws <- extract_draws(ord_fit_mean)
+all_draws <- prepare_predictions(ord_fit_mean)
 
 cutzero <- plogis(all_draws$dpars$cutzero)
 cutone <- plogis(all_draws$dpars$cutzero + exp(all_draws$dpars$cutone))

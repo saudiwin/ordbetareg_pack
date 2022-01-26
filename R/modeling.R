@@ -21,7 +21,7 @@
 #' to the `extra_prior` argument.
 #'
 #' This function will also automatically normalize the outcome so that it
-#' lies in the [0,1] interval, as required by beta regression. For furthur
+#' lies in the \\[0,1\\] interval, as required by beta regression. For furthur
 #' information, see the documentation for the [normalize] function.
 #'
 #' @param formula Either an R formula in the form response/DV ~ var1 + var2
@@ -69,7 +69,7 @@
 #' @param ... All other arguments passed on to the `brm` function
 #' @return A `brms` object fitted with the ordered beta regression distribution.
 #' @importFrom brms brm
-#' @importForm brms bf
+#' @importFrom brms bf
 #' @export
 ordbetareg <- function(formula=NULL,
                        data=NULL,
@@ -95,7 +95,7 @@ ordbetareg <- function(formula=NULL,
 
     dv <- all.vars(formula$formula)[1]
 
-    formula$formula <- .update2.formula(formula$formula, . ~ 0 + Intercept + .)
+    formula$formula <- .update2.formula(formula$formula, "0 + Intercept + ")
 
   } else if('mvbrmsformula' %in% class(formula)) {
 
@@ -107,7 +107,7 @@ ordbetareg <- function(formula=NULL,
 
     formula$forms <- lapply(formula$forms, function(var) {
 
-      var$formula <- .update2.formula(var$formula, . ~ 0 + Intercept + .)
+      var$formula <- .update2.formula(var$formula, "0 + Intercept + ")
 
     })
 
@@ -115,7 +115,7 @@ ordbetareg <- function(formula=NULL,
 
     dv <- all.vars(formula)[1]
 
-    formula <- .update2.formula(formula, . ~ 0 + Intercept + .)
+    formula <- .update2.formula(formula, "0 + Intercept + ")
 
   }
 
@@ -415,12 +415,22 @@ ordbetareg <- function(formula=NULL,
 
 }
 
-#' Helper function to add 0 + Intercept to function call
+#' Helper function to add 0 + Intercept to function call\
+#' @importFrom stats as.formula dbeta plogis qlogis quantile rbeta rnorm runif update var
 #' @noRd
 .update2.formula <- function (old, new, ...)
 {
-  tmp <- .Call(stats:::C_updateform, as.formula(old), as.formula(new))
-  formula(terms.formula(tmp, simplify = FALSE))
+
+  # treat it like a string, break it apart on the formula sign
+
+  string_form <- as.character(old)
+
+  new_form <- paste0(string_form[2],string_form[1], new,
+                      " + ",
+                      string_form[3])
+
+  as.formula(new_form)
+
 }
 
 
@@ -432,8 +442,8 @@ ordbetareg <- function(formula=NULL,
 #' This function implements the simulation found in Kubinec (2022). This
 #' simulation allows you to vary the sample size, number & type of predictors,
 #' values of the predictors (or treatment values), correlation between
-#' predictors, and the power to target. The function returns a data frame that
-#' can be plotted with the [plot_sim] function.
+#' predictors, and the power to target. The function returns a data frame
+#' with one row per simulation draw and covariate `k`.
 #' @param N The sample size for the simulation. Include a vector of integers
 #'   to examine power/results for multiple sample sizes.
 #' @param k The number of covariates/predictors.
@@ -474,7 +484,8 @@ ordbetareg <- function(formula=NULL,
 #'   1.
 #' @importFrom dplyr bind_rows mutate tibble slice as_tibble arrange group_by pull summarize %>% bind_cols
 #' @importFrom tidyr unchop
-#' @importForm faux rnorm_multi
+#' @importFrom faux rnorm_multi
+#' @importFrom brms posterior_epred
 #' @export
 sim_ordbeta <- function(N=1000,k=5,
                         iter=1000,
@@ -488,6 +499,10 @@ sim_ordbeta <- function(N=1000,k=5,
                         return_data=FALSE,
                         seed=as.numeric(Sys.time()),
                         ...) {
+
+  # silly R package things
+
+  marg_eff <- marg_eff_est <- high_marg <- low_marg <- high <- low <- x_col <- sum_stat <-  NULL
 
   set.seed(seed)
 
