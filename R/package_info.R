@@ -1,3 +1,28 @@
+#' ordbetareg: A Model for Continuous Data with Lower and Upper Bounds
+#'
+#' The `ordbetareg` package is essentially a wrapper around `brms` that
+#' enables the ordered beta regression model to be fit. This model has
+#' advantages over other alternatives for continous data with upper
+#' and lower bounds, such as survey sliders, indexes,
+#' dose-response relationships,
+#' and visual analog scales (among others). The package allows for all of the
+#' many `brms` regression modeling functions to be used with the ordered
+#' beta regression distribution.
+#'
+#' To learn more about how the package works, see the vignette by using
+#' the command `browseVignettes(package='ordbetareg')`.
+#'
+#' For more info about the distribution, see
+#' this paper: https://osf.io/preprints/socarxiv/2sx6y/
+#'
+#' To cite the package, please cite the following paper:
+#'
+#' Kubinec, Robert. "Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds." **Political Analysis**. 2022. Forthcoming.
+#' @docType package
+#' @name ordbetareg
+NULL
+
+
 #' Pew American Trends Panel Wave 28
 #'
 #' A dataset with the non-missing responses for the 28th wave of the

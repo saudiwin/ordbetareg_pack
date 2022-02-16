@@ -68,6 +68,36 @@
 #'  values.
 #' @param ... All other arguments passed on to the `brm` function
 #' @return A `brms` object fitted with the ordered beta regression distribution.
+#' @examples
+#' # load survey data that comes with the package
+#'
+#' data("pew")
+#'
+#' # prepare data
+#'
+#' model_data <- select(pew,therm,
+#'              education="F_EDUCCAT2_FINAL",
+#'              region="F_CREGION_FINAL",
+#'              income="F_INCOME_FINAL")
+#'
+#' # It takes a while to fit the models. Run the code
+#' # below if you want to load a saved fitted model from the
+#' # package, otherwise use the model-fitting code
+#'
+#' data("ord_fit_mean")
+#'
+#'   \donttest{
+#'   # fit the actual model
+#'
+#'     ord_fit_mean <- ordbetareg(formula=therm ~ education + income +
+#'     (1|region),
+#'     data=model_data,
+#'     cores=2,chains=2)
+#'   }
+#'
+#' # access values of the coefficients
+#'
+#' summary(ord_fit_mean)
 #' @importFrom brms brm
 #' @importFrom brms bf
 #' @export
@@ -344,8 +374,9 @@ ordbetareg <- function(formula=NULL,
   # code from Michael Betancourt/Staffan Betner
   # discussion here: https://discourse.mc-stan.org/t/dirichlet-prior-on-ordinal-regression-cutpoints-in-brms/20640
   dirichlet_prior <- "
-  real induced_dirichlet_lpdf(vector c, vector alpha, real phi) {
-    int K = num_elements(c) + 1;
+  real induced_dirichlet_lpdf(real nocut, vector alpha, real phi, int cutnum, real cut1, real cut2) {
+    int K = num_elements(alpha);
+    vector[K-1] c = [cut1, cut1 + exp(cut2)]';
     vector[K - 1] sigma = inv_logit(phi - c);
     vector[K] p;
     matrix[K, K] J = rep_matrix(0, K, K);
@@ -366,32 +397,84 @@ ordbetareg <- function(formula=NULL,
       J[k - 1, k] = rho;
     }
 
-    return   dirichlet_lpdf(p | alpha)
-           + log_determinant(J);
+    // divide in half for the two cutpoints
+
+    if(cutnum==1) {
+
+    // don't forget the ordered transformation
+
+      return   dirichlet_lpdf(p | alpha)
+           + log_determinant(J) + cut2;
+
+    } else {
+
+      return(0);
+
+    }
+
+
+  }
+
+  real induced_dirichlet_rng(vector alpha, real phi, int cutnum, real cut1, real cut2) {
+
+    int K = num_elements(alpha);
+    vector[K] p;
+    vector[K-1] cutpoints;
+
+    // need to reverse the steps
+    // first get the dirichlet probabilities conditional on alpha
+
+    p = dirichlet_rng(alpha);
+
+    // then do the *reverse* transformation to get cutpoints
+
+    for(k in 1:(K-1)) {
+
+       if(k==1) {
+
+          cutpoints[k] = phi - logit(1 - p[k]);
+
+       } else {
+
+          cutpoints[k] = phi - logit(inv_logit(phi - cutpoints[k-1]) - p[k]);
+
+       }
+
+    }
+
+    return  cutpoints[cutnum];
   }
 "
   dirichlet_prior_stanvar <- stanvar(scode = dirichlet_prior, block = "functions")
 
-  stanvar(scode = "ordered[2] thresh;
-              thresh[1] = cutzero;
-              thresh[2] = cutzero+exp(cutone);",
-          block = "tparameters") -> # there might be a better way to specify this
-    dirichlet_prior_ordbeta_stanvar
+  # stanvar(scode = "ordered[2] thresh;
+  #             thresh[1] = cutzero;
+  #             thresh[2] = cutzero+exp(cutone);",
+  #         block = "tparameters") -> # there might be a better way to specify this
+  #   dirichlet_prior_ordbeta_stanvar
 
-  stanvars <- stanvars + dirichlet_prior_stanvar + dirichlet_prior_ordbeta_stanvar
+  stanvars <- stanvars + dirichlet_prior_stanvar
 
   # Feel free to add any other priors / change the priors on b,
   # which represent regression coefficients on the logit
   # scale
 
-  priors <- set_prior(paste0("target += induced_dirichlet_lpdf(thresh | [",paste0(dirichlet_prior_num,
-                                                                                 collapse=","),"]', 0)"), check=FALSE) +
+  priors <- set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                                                   collapse=","),"]', 0, 1, cutzero, cutone)"),
+                      class="cutzero") +
+    set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                                          collapse=","),"]', 0, 2, cutzero, cutone)"),
+              class="cutone") +
     set_prior(paste0("normal(",beta_prior[1],",",beta_prior[2],")"),class="b") +
     set_prior(paste0("exponential(",phi_prior,")"),class="phi")
 
   priors_phireg <- set_prior("normal(0,5)",class="b") +
-    set_prior(paste0("target += induced_dirichlet_lpdf(thresh | [",paste0(dirichlet_prior_num,
-                                                                          collapse=","),"]', 0)"), check=FALSE)
+    set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                                          collapse=","),"]', 0, 1, cutzero, cutone)"),
+              class="cutzero") +
+    set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                                           collapse=","),"]', 0, 2, cutzero, cutone)"),
+              class="cutone")
 
   if(!is.null(extra_prior)) {
 
@@ -482,6 +565,34 @@ ordbetareg <- function(formula=NULL,
 #'   data a multiple of the number of sample sizes to iterate over. The
 #'   data frame will have the following columns:
 #'   1.
+#' @examples
+#' # This function takes a while to run as it has
+#' # to fit an ordered beta regression to each
+#' # draw. The package comes with a saved
+#' # simulation dataset you can inspect to see what the
+#' # result looks like
+#'
+#' data("sim_data")
+#'
+#' # will take a while to run this
+#' \donttest{
+#'     sim_data <- sim_ordbeta(N=c(250,750),
+#'     k=1,
+#'     beta_coef = .5,
+#'     iter=5,cores=2,
+#'     beta_type="binary",
+#'     treat_assign=0.3)
+#'
+#' }
+#'
+#' # to get the power values by N, simply summarize/group
+#' # by N with functions from the R package dplyr
+#'
+#' sim_data %>%
+#'   group_by(N) %>%
+#'   summarize(mean_power=mean(power))
+#'
+#'
 #' @importFrom dplyr bind_rows mutate tibble slice as_tibble arrange group_by pull summarize %>% bind_cols
 #' @importFrom tidyr unchop
 #' @importFrom faux rnorm_multi

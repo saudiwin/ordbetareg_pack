@@ -4,3 +4,6 @@
 README.Rmd
 orig.Rmd
 test_krueger.R
+test_package.R
+^CRAN-SUBMISSION$
+^cran-comments\.md$

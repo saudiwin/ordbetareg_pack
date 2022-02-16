@@ -1,20 +1,24 @@
 Package: ordbetareg
 Type: Package
-Title: Ordered Beta Regression Models With brms
-Version: 0.1.0
-Author: Robert Kubinec <rmk7@nyu.edu>
-Maintainer: Robert Kubinec <rmk7@nyu.edu>
-Description: This package implements ordered beta regression models using brms as a backend. 
-   These models are for modeling continuous variables with upper and lower bounds, such as
-   VAS scales, dose-response relationships and indexes. Hierarchical, dynamic and multivariate
-   specifications also implemented via brms.
+Title: Ordered Beta Regression Models with Brms
+Version: 0.2.0
+Authors@R: person(
+  "Robert", "Kubinec",
+  email = "rmk7@nyu.edu",
+  role = c("aut", "cre"),
+  comment = c(ORCID = "0000-0001-6655-4119"))
+Description: Implements ordered beta regression models, which are for modeling continuous variables with upper and lower bounds, such as
+   survey sliders, dose-response relationships and indexes. For more information, see
+   Kubinec (2022) <doi:10.31235/osf.io/2sx6y>. The package is a front-end to the R package 'brms', which 
+   facilitates a range of regression specifications, including hierarchical, dynamic and
+   multivariate modeling.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Depends: 
-    R (>= 2.10),
+    R (>= 3.5),
     faux,
     dplyr,
     brms,

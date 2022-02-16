@@ -85,3 +85,32 @@ values of the predictors (or treatment values), correlation between
 predictors, and the power to target. The function returns a data frame
 with one row per simulation draw and covariate \code{k}.
 }
+\examples{
+# This function takes a while to run as it has
+# to fit an ordered beta regression to each
+# draw. The package comes with a saved
+# simulation dataset you can inspect to see what the
+# result looks like
+
+data("sim_data")
+
+# will take a while to run this
+\donttest{
+    sim_data <- sim_ordbeta(N=c(250,750),
+    k=1,
+    beta_coef = .5,
+    iter=5,cores=2,
+    beta_type="binary",
+    treat_assign=0.3)
+
+}
+
+# to get the power values by N, simply summarize/group
+# by N with functions from the R package dplyr
+
+sim_data \%>\%
+  group_by(N) \%>\%
+  summarize(mean_power=mean(power))
+
+
+}

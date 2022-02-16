@@ -122,12 +122,15 @@ if(run_model) {
   ord_fit_mean <- ordbetareg(formula=therm ~ mo(education)*mo(income) +
                                (1|region), 
                        data=model_data,
-                cores=2,chains=2,
-                refresh=0,
-                # NOTE: remove these two options if you don't have 
-                # cmdstanr set up (or you don't have 5 cores to burn per chain)
-                threads=threading(5),
-                backend="cmdstanr")
+                cores=2,chains=2,iter=1000,
+                refresh=0)
+                # NOTE: to do parallel processing within chains
+                # add the options below
+                #threads=threading(5),
+                #backend="cmdstanr"
+                #where threads is the number of cores per chain
+                # you must have cmdstanr set up to do so
+                # see https://mc-stan.org/cmdstanr/
   
 } else {
   
@@ -224,12 +227,15 @@ if(run_model) {
                 phi ~ age + sex),
                 phi_reg = T,
                 data=model_data,
-                cores=2,chains=2,
-                refresh=100,
-                # again, remove these options if you don't have cmdstanr
-                # installed or don't want to use multiple cores
-                threads=threading(5),
-                backend="cmdstanr")
+                cores=2,chains=2,iter=1000,
+                refresh=0)
+                # NOTE: to do parallel processing within chains
+                # add the options below
+                #threads=threading(5),
+                #backend="cmdstanr"
+                #where threads is the number of cores per chain
+                # you must have cmdstanr set up to do so
+                # see https://mc-stan.org/cmdstanr/
   
 } else {
   
@@ -272,7 +278,7 @@ pred_post <- posterior_predict(ord_fit_phi,
 # better with iterations as rows
 
 pred_post <- t(pred_post)
-colnames(pred_post) <- 1:2000
+colnames(pred_post) <- 1:1000
 
 # need to convert to a data frame
 
@@ -297,7 +303,7 @@ Finally, we can also simulate data from the ordered beta regression model with t
 
 To access the data simulated for each run, the `return_data=TRUE` option can be set. To get a single simulated dataset, simply use this option combined with a single iteration and set of parameter values. The data are saved as a list in the column `data` in the returned data frame. The chunk below examines the first 10 rows of a single simulated dataset (note that the rows are repeated `k` times for each iteration, while there is one unique simulated dataset per iteration). Each predictor is listed as a `Var` column from 1 to `k`, while the simulated outcome is in the `outcome` column.
 
-```{r check_data}
+```{r check_data,eval=FALSE}
 
   single_data <- sim_ordbeta(N=100,iter=1,
                              return_data=T)
