@@ -51,6 +51,8 @@ normalize <- function(outcome) {
 
   trans_out <- (outcome - min(outcome, na.rm=T)) / (max(outcome, na.rm=T) - min(outcome, na.rm=T))
 
+  # handle values very close to 0
+
   attr(trans_out, "upper_bound") <- max(outcome, na.rm=T)
   attr(trans_out, "lower_bound") <- min(outcome, na.rm=T)
 

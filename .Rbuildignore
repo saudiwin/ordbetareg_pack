@@ -7,3 +7,4 @@ test_krueger.R
 test_package.R
 ^CRAN-SUBMISSION$
 ^cran-comments\.md$
+prop_modeling_version.R

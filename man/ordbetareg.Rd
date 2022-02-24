@@ -9,6 +9,7 @@ ordbetareg(
   formula = NULL,
   data = NULL,
   phi_reg = FALSE,
+  use_brm_multiple = FALSE,
   coef_prior_mean = 0,
   coef_prior_sd = 5,
   phi_prior = 0.1,
@@ -29,6 +30,11 @@ formula definition.}
 
 \item{phi_reg}{T/F. Whether you are including a linear model predicting
 the dispersion  parameter, phi. Defaults to false.}
+
+\item{use_brm_multiple}{(T/F) Whether the model should use
+\link[brms:brm_multiple]{brms::brm_multiple} for multiple
+imputation over multiple dataframes passed
+as a list to the \code{data} argument}
 
 \item{coef_prior_mean}{The mean of the Normal distribution prior on the
 regression coefficients (for predicting the mean of the response).

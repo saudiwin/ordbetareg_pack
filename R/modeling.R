@@ -29,6 +29,10 @@
 #'   [brms::bf] function. *Please avoid using 0 or `Intercept` in the
 #'   formula definition.
 #' @param data An R data frame or tibble containing the variables in the formula
+#' @param use_brm_multiple (T/F) Whether the model should use
+#'   [brms::brm_multiple] for multiple
+#'   imputation over multiple dataframes passed
+#'   as a list to the `data` argument
 #' @param phi_reg T/F. Whether you are including a linear model predicting
 #'   the dispersion  parameter, phi. Defaults to false.
 #' @param coef_prior_mean The mean of the Normal distribution prior on the
@@ -66,6 +70,16 @@
 #'  regression coefficient, added to the model by passing one of the `brms`
 #'  functions [brms::set_prior] or [brms::prior_string] with appropriate
 #'  values.
+#' @param inits This parameter is used to determine starting values for
+#'   the Stan sampler to begin Markov Chain Monte Carlo sampling. It is
+#'   set by default at 0 because the non-linear nature of beta regression
+#'   means that it is possible to begin with extreme values depending on the
+#'   scale of the covariates. Setting this to 0 helps the sampler find
+#'   starting values. It does, on the other hand, limit the ability to detect
+#'   convergence issues with Rhat statistics. If that is a concern, such as
+#'   with an experimental feature of `brms`, set this to `"random"` to get
+#'   more robust starting values (just be sure to scale the covariates so they are
+#'   not too large in absolute size).
 #' @param ... All other arguments passed on to the `brm` function
 #' @return A `brms` object fitted with the ordered beta regression distribution.
 #' @examples
@@ -104,6 +118,7 @@
 ordbetareg <- function(formula=NULL,
                        data=NULL,
                        phi_reg=FALSE,
+                       use_brm_multiple=FALSE,
                        coef_prior_mean=0,
                        coef_prior_sd=5,
                        phi_prior=.1,
@@ -111,6 +126,7 @@ ordbetareg <- function(formula=NULL,
                        phi_coef_prior_mean=0,
                        phi_coef_prior_sd=5,
                        extra_prior=NULL,
+                       inits="0",
                        ...) {
 
 
@@ -131,9 +147,9 @@ ordbetareg <- function(formula=NULL,
 
     dv <- lapply(formula$forms, function(var) {
 
-          all.vars(var$formula)[1]
+      all.vars(var$formula)[1]
 
-      })
+    })
 
     formula$forms <- lapply(formula$forms, function(var) {
 
@@ -157,61 +173,148 @@ ordbetareg <- function(formula=NULL,
 
   # figure out where it is so we can edit it
 
-  if(length(dv)==1) {
+  if(use_brm_multiple) {
 
-    dv_pos <- which(names(data)==dv)
+    if(!is.list(all_data))
+      stop("To use brm_multiple with ordbetareg, please pass the multiple imputed datasets as a list to the data argument.\nMice objects are not currently supported.")
 
-    if(!(all(data[[dv_pos]] >= 0 & data[[dv_pos]] <= 1,na.rm=T))) {
+    if(length(dv)==1) {
 
-      data[[dv_pos]] <- normalize(data[[dv_pos]])
+      dv_pos <- which(names(data[[1]])==dv)
+
+
+      data <- lapply(data, function(d) {
+
+        if(!(all(d[[dv_pos]] >= 0 & d[[dv_pos]] <= 1,na.rm=T))) {
+
+          d[[dv_pos]] <- normalize(d[[dv_pos]])
+
+        } else {
+
+          attr(d[[dv_pos]], "upper_bound") <- 1
+          attr(d[[dv_pos]], "lower_bound") <- 0
+
+        }
+
+        d
+
+      })
 
     } else {
 
-      attr(data[[dv_pos]], "upper_bound") <- 1
-      attr(data[[dv_pos]], "lower_bound") <- 0
+      # multivariate adjustment necessary
+
+      dv_pos <- sapply(dv, function(d) {
+
+        which(names(data)==d)
+
+      })
+
+      data <- lapply(data, function(d) {
+
+        d <- lapply(1:length(d), function(c) {
+
+          if(c %in% dv_pos) {
+
+            if(!(all(d[[c]] >= 0 & d[[c]] <= 1,na.rm=T))) {
+
+              out_var <- normalize(d[[c]])
+
+            } else {
+
+              out_var <- d[[c]]
+
+              attr(out_var, "upper_bound") <- 1
+              attr(out_var, "lower_bound") <- 0
+
+            }
+
+          } else {
+
+            out_var <- d[[c]]
+
+          }
+
+          return(out_var)
+
+        })
+
+        d
+
+      })
+
+
+
+      # check all outcomes
+
+
 
     }
 
+
   } else {
 
-    # multivariate adjustment necessary
+    if(length(dv)==1) {
 
-    dv_pos <- sapply(dv, function(d) {
+      dv_pos <- which(names(data)==dv)
 
-      which(names(data)==d)
+      if(!(all(data[[dv_pos]] >= 0 & data[[dv_pos]] <= 1,na.rm=T))) {
 
-    })
+        data[[dv_pos]] <- normalize(data[[dv_pos]])
 
-    # check all outcomes
+      } else {
 
-    data <- lapply(1:length(data), function(c) {
+        attr(data[[dv_pos]], "upper_bound") <- 1
+        attr(data[[dv_pos]], "lower_bound") <- 0
 
-      if(c %in% dv_pos) {
+      }
 
-        if(!(all(data[[c]] >= 0 & data[[c]] <= 1,na.rm=T))) {
+    } else {
 
-          out_var <- normalize(data[[c]])
+      # multivariate adjustment necessary
+
+      dv_pos <- sapply(dv, function(d) {
+
+        which(names(data)==d)
+
+      })
+
+      # check all outcomes
+
+      data <- lapply(1:length(data), function(c) {
+
+        if(c %in% dv_pos) {
+
+          if(!(all(data[[c]] >= 0 & data[[c]] <= 1,na.rm=T))) {
+
+            out_var <- normalize(data[[c]])
+
+          } else {
+
+            out_var <- data[[c]]
+
+            attr(out_var, "upper_bound") <- 1
+            attr(out_var, "lower_bound") <- 0
+
+          }
 
         } else {
 
           out_var <- data[[c]]
 
-          attr(out_var, "upper_bound") <- 1
-          attr(out_var, "lower_bound") <- 0
-
         }
 
-      } else {
+        return(out_var)
 
-        out_var <- data[[c]]
+      })
 
-      }
+    }
 
-      return(out_var)
 
-    })
 
   }
+
+
 
 
   # get ordered beta regression definition
@@ -226,21 +329,56 @@ ordbetareg <- function(formula=NULL,
                                   phi_prior = phi_prior,
                                   extra_prior=extra_prior)
 
-  if(phi_reg) {
 
-    brm(formula=formula, data=data,
-        stanvars=ordbeta_mod$stanvars,
-        family=ordbeta_mod$family,
-        prior=ordbeta_mod$priors_phireg,...)
+  if(use_brm_multiple) {
+
+    if(phi_reg) {
+
+      brm_multiple(formula=formula, data=data,
+                   stanvars=ordbeta_mod$stanvars,
+                   family=ordbeta_mod$family,
+                   prior=ordbeta_mod$priors_phireg,
+                   inits=inits,
+                   ...)
+
+    } else {
+
+      brm_multiple(formula=formula, data=data,
+                   stanvars=ordbeta_mod$stanvars,
+                   family=ordbeta_mod$family,
+                   prior=ordbeta_mod$priors,
+                   inits=inits,
+                   ...)
+
+    }
+
+
 
   } else {
 
-    brm(formula=formula, data=data,
-        stanvars=ordbeta_mod$stanvars,
-        family=ordbeta_mod$family,
-        prior=ordbeta_mod$priors,...)
+    if(phi_reg) {
+
+      brm(formula=formula, data=data,
+          stanvars=ordbeta_mod$stanvars,
+          family=ordbeta_mod$family,
+          prior=ordbeta_mod$priors_phireg,
+          inits=inits,
+          ...)
+
+    } else {
+
+      brm(formula=formula, data=data,
+          stanvars=ordbeta_mod$stanvars,
+          family=ordbeta_mod$family,
+          prior=ordbeta_mod$priors,
+          inits=inits,
+          ...)
+
+    }
 
   }
+
+
 
 
 
@@ -264,27 +402,27 @@ ordbetareg <- function(formula=NULL,
 
   ord_beta_reg <- custom_family("ord_beta_reg",
                                 dpars=c("mu","phi","cutzero","cutone"),
-                                links=c("logit","log",NA,NA),
+                                links=c("identity","log",NA,NA),
                                 lb=c(NA,0,NA,NA),
                                 type="real")
 
   # stan code for density of the model
 
-  stan_funs <- "real ord_beta_reg_lpdf(real y, real mu, real phi, real cutzero, real cutone) {
+  stan_funs <- "
 
-    //auxiliary variables
-    real mu_logit = logit(mu);
+    real ord_beta_reg_lpdf(real y, real mu, real phi, real cutzero, real cutone) {
+
     vector[2] thresh;
     thresh[1] = cutzero;
     thresh[2] = cutzero + exp(cutone);
 
   if(y==0) {
-      return log1m_inv_logit(mu_logit - thresh[1]);
+      return log1m_inv_logit(mu - thresh[1]);
     } else if(y==1) {
-      return log_inv_logit(mu_logit  - thresh[2]);
+      return log_inv_logit(mu  - thresh[2]);
     } else {
-      return log(inv_logit(mu_logit  - thresh[1]) - inv_logit(mu_logit - thresh[2])) +
-                beta_proportion_lpdf(y|mu,phi);
+      return log_diff_exp(log_inv_logit(mu   - thresh[1]), log_inv_logit(mu - thresh[2])) +
+                beta_lpdf(y|exp(log_inv_logit(mu) + log(phi)),exp(log1m_inv_logit(mu) + log(phi)));
     }
   }"
 
@@ -302,10 +440,10 @@ ordbetareg <- function(formula=NULL,
     thresh1 <- cutzero
     thresh2 <- cutzero + exp(cutone)
 
-    pr_y0 <- 1 - plogis(qlogis(mu) - thresh1)
-    pr_y1 <- plogis(qlogis(mu) - thresh2)
-    pr_cont <- plogis(qlogis(mu)-thresh1) - plogis(qlogis(mu) - thresh2)
-    out_beta <- rbeta(n=N,mu*phi,(1-mu)*phi)
+    pr_y0 <- 1 - plogis(mu - thresh1)
+    pr_y1 <- plogis(mu - thresh2)
+    pr_cont <- plogis(mu-thresh1) - plogis(mu - thresh2)
+    out_beta <- rbeta(n=N,plogis(mu)*phi,(1-plogis(mu))*phi)
 
     # now determine which one we get for each observation
     outcomes <- sapply(1:N, function(i) {
@@ -338,11 +476,11 @@ ordbetareg <- function(formula=NULL,
     thresh1 <- cutzero
     thresh2 <- cutzero + exp(cutone)
 
-    low <- 1 - plogis(qlogis(mu) - thresh1)
-    middle <- plogis(qlogis(mu)-thresh1) - plogis(qlogis(mu) - thresh2)
-    high <- plogis(qlogis(mu) - thresh2)
+    low <- 1 - plogis(mu - thresh1)
+    middle <- plogis(mu-thresh1) - plogis(mu - thresh2)
+    high <- plogis(mu - thresh2)
 
-    low*0 + middle*mu + high
+    low*0 + middle*plogis(mu) + high
   }
 
   # for calcuating LOO and Bayes Factors
@@ -359,11 +497,11 @@ ordbetareg <- function(formula=NULL,
     thresh2 <- cutzero + exp(cutone)
 
     if(y==0) {
-      out <- log(1 - plogis(qlogis(mu) - thresh1))
+      out <- log(1 - plogis(mu - thresh1))
     } else if(y==1) {
-      out <- log(plogis(qlogis(mu) - thresh2))
+      out <- log(plogis(mu - thresh2))
     } else {
-      out <- log(plogis(qlogis(mu)-thresh1) - plogis(qlogis(mu) - thresh2)) + dbeta(y,mu*phi,(1-mu)*phi,log=T)
+      out <- log(plogis(mu-thresh1) - plogis(mu - thresh2)) + dbeta(y,plogis(mu)*phi,(1-plogis(mu))*phi,log=T)
     }
 
     out
@@ -380,6 +518,8 @@ ordbetareg <- function(formula=NULL,
     vector[K - 1] sigma = inv_logit(phi - c);
     vector[K] p;
     matrix[K, K] J = rep_matrix(0, K, K);
+
+    if(cutnum==1) {
 
     // Induced ordinal probabilities
     p[1] = 1 - sigma[1];
@@ -398,8 +538,6 @@ ordbetareg <- function(formula=NULL,
     }
 
     // divide in half for the two cutpoints
-
-    if(cutnum==1) {
 
     // don't forget the ordered transformation
 
@@ -460,20 +598,20 @@ ordbetareg <- function(formula=NULL,
   # scale
 
   priors <- set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
-                                                                                   collapse=","),"]', 0, 1, cutzero, cutone)"),
+                                                          collapse=","),"]', 0, 1, cutzero, cutone)"),
                       class="cutzero") +
     set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
-                                                                          collapse=","),"]', 0, 2, cutzero, cutone)"),
+                                                  collapse=","),"]', 0, 2, cutzero, cutone)"),
               class="cutone") +
     set_prior(paste0("normal(",beta_prior[1],",",beta_prior[2],")"),class="b") +
     set_prior(paste0("exponential(",phi_prior,")"),class="phi")
 
   priors_phireg <- set_prior("normal(0,5)",class="b") +
     set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
-                                                                          collapse=","),"]', 0, 1, cutzero, cutone)"),
+                                                  collapse=","),"]', 0, 1, cutzero, cutone)"),
               class="cutzero") +
     set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
-                                                                           collapse=","),"]', 0, 2, cutzero, cutone)"),
+                                                  collapse=","),"]', 0, 2, cutzero, cutone)"),
               class="cutone")
 
   if(!is.null(extra_prior)) {
@@ -509,8 +647,8 @@ ordbetareg <- function(formula=NULL,
   string_form <- as.character(old)
 
   new_form <- paste0(string_form[2],string_form[1], new,
-                      " + ",
-                      string_form[3])
+                     " + ",
+                     string_form[3])
 
   as.formula(new_form)
 
@@ -619,7 +757,7 @@ sim_ordbeta <- function(N=1000,k=5,
 
   if(is.null(beta_coef)) {
 
-      beta_coef <- runif(k, min=-1, max=1)
+    beta_coef <- runif(k, min=-1, max=1)
 
   }
 
@@ -640,7 +778,7 @@ sim_ordbeta <- function(N=1000,k=5,
            X_beta=list(beta_coef))
 
 
-    }) %>% bind_rows
+  }) %>% bind_rows
 
 
   print(paste0("Iterating for ", nrow(simul_data), " simulations."))
@@ -663,12 +801,12 @@ sim_ordbeta <- function(N=1000,k=5,
   X_temp$outcome <- .5
 
   template_mod <- ordbetareg(formula = as.formula(paste0("outcome ~ ",
-                                                                      paste0(rep("Var",k),1:k,
-                                                                             collapse=" + "))),
-                                          data=X_temp,
-                                          chains=0,cores=1,iter=100,
-                                          seed=seed,
-                                          silent=0,refresh=0,...)
+                                                         paste0(rep("Var",k),1:k,
+                                                                collapse=" + "))),
+                             data=X_temp,
+                             chains=0,cores=1,iter=100,
+                             seed=seed,
+                             silent=0,refresh=0,...)
 
 
   all_simul_data <- parallel::mclapply(1:nrow(simul_data), function(i) {
@@ -770,12 +908,12 @@ sim_ordbeta <- function(N=1000,k=5,
       X_high[,tk] <- X[,tk] + setstep(X[,tk])
 
       y0 <- .predict_ordbeta(cutpoints=cutpoints,
-                            X=X_low,
-                            X_beta=X_beta)
+                             X=X_low,
+                             X_beta=X_beta)
 
       y1 <- .predict_ordbeta(cutpoints=cutpoints,
-                            X=X_high,
-                            X_beta=X_beta)
+                             X=X_high,
+                             X_beta=X_beta)
 
       mean((y1-y0)/(X_high[,tk]-X_low[,tk]))
 
@@ -849,12 +987,12 @@ sim_ordbeta <- function(N=1000,k=5,
 
       tibble(marg_eff=sapply(1:nrow(X_beta_ord), function(i) {
         y0 <- .predict_ordbeta(cutpoints=cutpoints_est[i,],
-                              X=X_low,
-                              X_beta=c(X_beta_ord[i,]))
+                               X=X_low,
+                               X_beta=c(X_beta_ord[i,]))
 
         y1 <- .predict_ordbeta(cutpoints=cutpoints_est[i,],
-                              X=X_high,
-                              X_beta=c(X_beta_ord[i,]))
+                               X=X_high,
+                               X_beta=c(X_beta_ord[i,]))
 
         marg_eff <- (y1-y0)/(X_high[,tk]-X_low[,tk])
 
@@ -882,15 +1020,15 @@ sim_ordbeta <- function(N=1000,k=5,
 
     out_d <- bind_cols(this_data,
                        tibble(model="Ordinal Beta Regression",
-           med_est=list(apply(X_beta_ord,2,mean)),
-           high=list(apply(X_beta_ord,2,quantile,.95)),
-           low=list(apply(X_beta_ord,2,quantile,.05)),
-           var_calc=list(apply(X_beta_ord,2,var)),
-           rmse=rmse_ord,
-           marg_eff_est=sum_marg(margin_ord,mean),
-           high_marg=sum_marg(margin_ord,quantile,.95),
-           low_marg=sum_marg(margin_ord,quantile,.05),
-           var_marg=sum_marg(margin_ord,var)))
+                              med_est=list(apply(X_beta_ord,2,mean)),
+                              high=list(apply(X_beta_ord,2,quantile,.95)),
+                              low=list(apply(X_beta_ord,2,quantile,.05)),
+                              var_calc=list(apply(X_beta_ord,2,var)),
+                              rmse=rmse_ord,
+                              marg_eff_est=sum_marg(margin_ord,mean),
+                              high_marg=sum_marg(margin_ord,quantile,.95),
+                              low_marg=sum_marg(margin_ord,quantile,.05),
+                              var_marg=sum_marg(margin_ord,var)))
 
 
     if(return_data) {
@@ -911,7 +1049,7 @@ sim_ordbeta <- function(N=1000,k=5,
     mutate(s_err=sign(marg_eff)!=sign(marg_eff_est),
            m_err=abs(marg_eff_est)/abs(marg_eff),
            coverage=ifelse(marg_eff>0,marg_eff<high_marg & marg_eff>low_marg,
-                      marg_eff<high_marg & marg_eff>low_marg),
+                           marg_eff<high_marg & marg_eff>low_marg),
            power=as.numeric(ifelse(sign(marg_eff)==sign(high) & sign(marg_eff)==sign(low),
                                    1,
                                    0)),
@@ -926,7 +1064,7 @@ sim_ordbeta <- function(N=1000,k=5,
 #' Internal function for calculating predicting ordered beta for simulation
 #' @noRd
 .predict_ordbeta <- function(cutpoints=NULL,X=NULL,X_beta=NULL,
-                            combined_out=T) {
+                             combined_out=T) {
 
   # we'll assume the same eta was used to generate outcomes
   eta <- X%*%matrix(X_beta)[,1]
