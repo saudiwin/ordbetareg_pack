@@ -17,6 +17,7 @@ ordbetareg(
   phi_coef_prior_mean = 0,
   phi_coef_prior_sd = 5,
   extra_prior = NULL,
+  inits = "0",
   ...
 )
 }
@@ -77,6 +78,17 @@ logit scale.}
 regression coefficient, added to the model by passing one of the \code{brms}
 functions \link[brms:set_prior]{brms::set_prior} or \link[brms:set_prior]{brms::prior_string} with appropriate
 values.}
+
+\item{inits}{This parameter is used to determine starting values for
+the Stan sampler to begin Markov Chain Monte Carlo sampling. It is
+set by default at 0 because the non-linear nature of beta regression
+means that it is possible to begin with extreme values depending on the
+scale of the covariates. Setting this to 0 helps the sampler find
+starting values. It does, on the other hand, limit the ability to detect
+convergence issues with Rhat statistics. If that is a concern, such as
+with an experimental feature of \code{brms}, set this to \code{"random"} to get
+more robust starting values (just be sure to scale the covariates so they are
+not too large in absolute size).}
 
 \item{...}{All other arguments passed on to the \code{brm} function}
 }

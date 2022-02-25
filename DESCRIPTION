@@ -24,8 +24,7 @@ Depends:
     dplyr,
     brms,
     tidyr,
-    stats,
-    BPmodel
+    stats
 Suggests: 
     rmarkdown,
     knitr,
