@@ -112,7 +112,7 @@
 #' # access values of the coefficients
 #'
 #' summary(ord_fit_mean)
-#' @importFrom brms brm
+#' @importFrom brms brm brm_multiple
 #' @importFrom brms bf
 #' @export
 ordbetareg <- function(formula=NULL,
@@ -175,7 +175,7 @@ ordbetareg <- function(formula=NULL,
 
   if(use_brm_multiple) {
 
-    if(!is.list(all_data))
+    if(!is.list(data))
       stop("To use brm_multiple with ordbetareg, please pass the multiple imputed datasets as a list to the data argument.\nMice objects are not currently supported.")
 
     if(length(dv)==1) {

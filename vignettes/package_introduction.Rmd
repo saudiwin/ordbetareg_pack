@@ -2,7 +2,9 @@
 title: "Introduction to `ordbetareg`"
 author: "Robert Kubinec"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output: 
+  rmarkdown::html_vignette:
+    toc: true
 vignette: >
   %\VignetteIndexEntry{package_introduction}
   %\VignetteEngine{knitr::rmarkdown}
@@ -28,6 +30,7 @@ library(haven)
 library(brms)
 library(tidyr)
 library(stringr)
+library(Hmisc)
 
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -39,9 +42,9 @@ knitr::opts_chunk$set(
 
 # Overview
 
-This notebook contains instructions for running the ordered beta regression model in the R package `ordbetareg`. `ordbetareg` is a front-end to `brms`, a very powerful regression modeling package based on the [Stan Hamiltonian Markov Chain Monte Carlo](https://mc-stan.org/) sampler. I only show in this vignette a small part of the features which are available via `brms`, and I refer the user to the [copious documentation with the package](https://paul-buerkner.github.io/brms/). Suffice it to say that most kinds of regression models can be fit with the software, including hierarchical, dynamic, nonlinear and multivariate models (are all of the above in combination). The `ordbetareg` allows for all of these features to be used with the ordered regression model distribution by adding this distribution to `brms`.
+The ordered beta regression model is designed explicitly for data with upper and lower bounds, such as survey slider scales, dose/response relationships, and indexes. This type of data cannot be fit with the standard beta regression model because the beta distribution does not allow for any observations at the bounds, such as the upper limit of a scale. The ordered beta regression model solves this problem by combining the beta distribution with an ordinal distribution over continuous and discrete, or degenerate, observations at the bounds. It is an efficient model that produces intelligible estimates that also respect the bounds of the dependent variable. For more information, I refer you to my paper on the model: https://osf.io/preprints/socarxiv/2sx6y/.
 
-The ordered beta regression model is designed explicitly for data with upper and lower bounds, such as survey slider scales, dose/response relationships, and indexes. I refer you to a paper on the model if you are not familiar with it: https://osf.io/preprints/socarxiv/2sx6y/.
+This notebook contains instructions for running the ordered beta regression model in the R package `ordbetareg`. `ordbetareg` is a front-end to `brms`, a very powerful regression modeling package based on the [Stan Hamiltonian Markov Chain Monte Carlo](https://mc-stan.org/) sampler. I only show in this vignette a small part of the features which are available via `brms`, and I refer the user to the [copious documentation describing the features of the package](https://paul-buerkner.github.io/brms/). Suffice it to say that most kinds of regression models can be fit with the software, including hierarchical, dynamic, nonlinear and multivariate models (or all of the above in combination). The `ordbetareg` package allows for all of these features to be used with the ordered regression model distribution by adding this distribution to `brms`.
 
 If you use the model in a paper, please cite it as:
 
@@ -107,7 +110,7 @@ The completed dataset has `r nrow(model_data)` observations.
 
 # Run In `ordbetareg`
 
-Given these new functions, we can then run a `ordbetareg` model as usual. The `ordbetareg` function will take care of normalizing the outcome and adding additional information necessary for to estimate the distribution. However, any additional arguments can be passed to the underlying `brm` function. For example, in the code below I use the `backend="cmdstanr"` argument to `brm()`, which allows me to use the R package `cmdstanr` for estimating models. `cmdstanr` tends to have the most up to date version of Stan, though you must install it yourself. 
+The `ordbetareg` function will take care of normalizing the outcome and adding additional information necessary to estimate the distribution. Any additional arguments can be passed to the underlying `brm` function to use specific `brm` features. For example, in the code below I use the `backend="cmdstanr"` argument to `brm()`, which allows me to use the R package `cmdstanr` for estimating models. `cmdstanr` tends to have the most up to date version of Stan, though you must install it yourself. 
 
 What you need to pass to the `ordbetareg` function are the standard components of any R model: a formula and a dataset that has all the variables mentioned in the formula. There are additional parameters that allow you to modify the priors, such as for the dispersion parameter `phi`. While in most cases these priors are sensible defaults, if you have data with an unusual scale (such as very large or very small values), you may want to change the priors to ensure they are not having an outsize effect on your estimates.
 
@@ -168,7 +171,7 @@ pew %>%
 
 ```
 
-We can see in the plot above that the model does a good job isolating values that are very close to the degenerate bounds of 0 and 100 from values that are more continuous in nature. 
+We can see in the plot above that the model does a good job isolating values that are very close to the degenerate bounds of 0 and 100 from values that are more continuous in nature. Note that this plot is somewhat of a heuristic as the cutpoints are technically in a latent continuous space, but it is nonetheless helpful for seeing how spread out the data are according to the model's estimates.
 
 We can plot the full predictive distribution relative to the original outcome. The model can't capture all of the modality in the distribution -- there are effectively four separate modes -- but it is reasonably accurate over the middle responses and the responses near the bounds.
 
@@ -208,7 +211,7 @@ summary(marg_effs) %>% knitr::kable()
 
 ```
 
-We can see that we have separate marginal effects for each level of education due to modeling it as an ordinal predictor. As we can see with the raw coefficient in the table above, the marginal effects are all positive, though the magnitude varies across different levels of education.
+We can see that we have separate marginal effects for each level of education due to modeling it as an ordinal predictor. At present the `marginaleffects` cannot calculate a single effect, though that is possible manually. As we can see with the raw coefficient in the table above, the marginal effects are all positive, though the magnitude varies across different levels of education.
 
 # Understanding Clustering/Polarization of Respondents
 
@@ -305,6 +308,8 @@ To access the data simulated for each run, the `return_data=TRUE` option can be 
 
 ```{r check_data,eval=FALSE}
 
+# NOT RUN IN THE VIGNETTE
+
   single_data <- sim_ordbeta(N=100,iter=1,
                              return_data=T)
 
@@ -314,7 +319,7 @@ knitr::kable(head(single_data$data[[1]]))
 
 ```
 
-By default, the function simulates continuous predictors. To simulate a binary variables, such as in a standard experimental design, use the `beta_type` function to specify `"binary"` predictors and `treat_assign` to determine the proportion assigned to treatment for each predictor. For a standard design with only one treatment variable, we'll also specify that `k=1` for a single covariate. Finally, to estimate a reasonable treatment effect, we will specify that `beta_coef=0.5`, which equals an increase of .5 on the logit scale. While it can be tricky to know a priori what the marginal effect will be (i.e., the actual change in the outcome), the function will calculate marginal effects and report them, so you can play with other options to see what gets you marginal effects/treatment effects of interest.
+By default, the function simulates continuous predictors. To simulate binary variables, such as in a standard experimental design, use the `beta_type` function to specify `"binary"` predictors and `treat_assign` to determine the proportion assigned to treatment for each predictor. For a standard design with only one treatment variable, we'll also specify that `k=1` for a single covariate. Finally, to estimate a reasonable treatment effect, we will specify that `beta_coef=0.5`, which equals an increase of .5 on the logit scale. While it can be tricky to know a priori what the marginal effect will be (i.e., the actual change in the outcome), the function will calculate marginal effects and report them, so you can play with other options to see what gets you marginal effects/treatment effects of interest.
 
 ```{r sim_data_full}
 
