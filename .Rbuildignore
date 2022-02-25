@@ -8,3 +8,7 @@ test_package.R
 ^CRAN-SUBMISSION$
 ^cran-comments\.md$
 prop_modeling_version.R
+test
+test.stan
+test2.stan
+ols_ordbeta_compare.png
