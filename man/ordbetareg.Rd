@@ -8,6 +8,7 @@
 ordbetareg(
   formula = NULL,
   data = NULL,
+  true_bounds = NULL,
   phi_reg = FALSE,
   use_brm_multiple = FALSE,
   coef_prior_mean = 0,
@@ -28,6 +29,11 @@ etc. \emph{or} formula object as created/called by the \code{brms}
 formula definition.}
 
 \item{data}{An R data frame or tibble containing the variables in the formula}
+
+\item{true_bounds}{If the true bounds of the outcome/response
+don't exist in the data, pass a length 2 numeric vector
+of the minimum and maximum bounds to properly normalize
+the outcome/response}
 
 \item{phi_reg}{T/F. Whether you are including a linear model predicting
 the dispersion  parameter, phi. Defaults to false.}

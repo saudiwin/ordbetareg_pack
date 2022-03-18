@@ -4,7 +4,7 @@
 \alias{normalize}
 \title{Normalize Outcome/Response to \[0,1\] Interval}
 \usage{
-normalize(outcome)
+normalize(outcome, true_bounds = NULL)
 }
 \arguments{
 \item{outcome}{Any non-character vector. Factors will be converted

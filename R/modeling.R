@@ -29,6 +29,10 @@
 #'   [brms::bf] function. *Please avoid using 0 or `Intercept` in the
 #'   formula definition.
 #' @param data An R data frame or tibble containing the variables in the formula
+#' @param true_bounds If the true bounds of the outcome/response
+#'   don't exist in the data, pass a length 2 numeric vector
+#'   of the minimum and maximum bounds to properly normalize
+#'   the outcome/response
 #' @param use_brm_multiple (T/F) Whether the model should use
 #'   [brms::brm_multiple] for multiple
 #'   imputation over multiple dataframes passed
@@ -117,6 +121,7 @@
 #' @export
 ordbetareg <- function(formula=NULL,
                        data=NULL,
+                       true_bounds=NULL,
                        phi_reg=FALSE,
                        use_brm_multiple=FALSE,
                        coef_prior_mean=0,
@@ -153,7 +158,13 @@ ordbetareg <- function(formula=NULL,
 
     formula$forms <- lapply(formula$forms, function(var) {
 
-      var$formula <- .update2.formula(var$formula, "0 + Intercept + ")
+      if(is.null(var$family)) {
+
+        var$formula <- .update2.formula(var$formula, "0 + Intercept + ")
+
+      }
+
+        var
 
     })
 
@@ -171,6 +182,8 @@ ordbetareg <- function(formula=NULL,
 
   }
 
+  all_fam_types <- sapply(formula$forms, function(var) var$family$family)
+
   # figure out where it is so we can edit it
 
   if(use_brm_multiple) {
@@ -187,7 +200,7 @@ ordbetareg <- function(formula=NULL,
 
         if(!(all(d[[dv_pos]] >= 0 & d[[dv_pos]] <= 1,na.rm=T))) {
 
-          d[[dv_pos]] <- normalize(d[[dv_pos]])
+          d[[dv_pos]] <- normalize(d[[dv_pos]],true_bounds=true_bounds)
 
         } else {
 
@@ -212,20 +225,27 @@ ordbetareg <- function(formula=NULL,
 
       data <- lapply(data, function(d) {
 
-        d <- lapply(1:length(d), function(c) {
+        d_prime <- lapply(1:length(d), function(c) {
 
           if(c %in% dv_pos) {
 
-            if(!(all(d[[c]] >= 0 & d[[c]] <= 1,na.rm=T))) {
+            if(is.null(formula$forms[[which(dv_pos==c)]]$family)) {
 
-              out_var <- normalize(d[[c]])
+              if(!(all(d[[c]] >= 0 & d[[c]] <= 1,na.rm=T))) {
 
+                out_var <- normalize(d[[c]],true_bounds=true_bounds)
+
+              } else {
+
+                out_var <- d[[c]]
+
+                attr(out_var, "upper_bound") <- 1
+                attr(out_var, "lower_bound") <- 0
+
+              }
             } else {
 
               out_var <- d[[c]]
-
-              attr(out_var, "upper_bound") <- 1
-              attr(out_var, "lower_bound") <- 0
 
             }
 
@@ -239,7 +259,9 @@ ordbetareg <- function(formula=NULL,
 
         })
 
-        d
+        names(d_prime) <- names(d)
+
+        d_prime
 
       })
 
@@ -260,7 +282,7 @@ ordbetareg <- function(formula=NULL,
 
       if(!(all(data[[dv_pos]] >= 0 & data[[dv_pos]] <= 1,na.rm=T))) {
 
-        data[[dv_pos]] <- normalize(data[[dv_pos]])
+        data[[dv_pos]] <- normalize(data[[dv_pos]],true_bounds=true_bounds)
 
       } else {
 
@@ -281,20 +303,27 @@ ordbetareg <- function(formula=NULL,
 
       # check all outcomes
 
-      data <- lapply(1:length(data), function(c) {
+      d_prime <- lapply(1:length(data), function(c) {
 
         if(c %in% dv_pos) {
 
-          if(!(all(data[[c]] >= 0 & data[[c]] <= 1,na.rm=T))) {
+          if(is.null(formula$forms[[which(dv_pos==c)]]$family)) {
 
-            out_var <- normalize(data[[c]])
+            if(!(all(data[[c]] >= 0 & data[[c]] <= 1,na.rm=T))) {
 
+              out_var <- normalize(data[[c]],true_bounds=true_bounds)
+
+            } else {
+
+              out_var <- data[[c]]
+
+              attr(out_var, "upper_bound") <- 1
+              attr(out_var, "lower_bound") <- 0
+
+            }
           } else {
 
             out_var <- data[[c]]
-
-            attr(out_var, "upper_bound") <- 1
-            attr(out_var, "lower_bound") <- 0
 
           }
 
@@ -308,16 +337,37 @@ ordbetareg <- function(formula=NULL,
 
       })
 
+      names(d_prime) <- names(data)
+
+      data <- d_prime
+
     }
 
 
 
   }
 
-
-
-
   # get ordered beta regression definition
+
+
+  sep_fam <- F
+
+
+  if('mvbrmsformula' %in% class(formula)) {
+    # update formula objects with model families if they
+    # are distinct families
+
+    if(any(!sapply(all_fam_types, is.null))) {
+
+      sep_fam <- T
+      need_resp <- formula$resp[sapply(all_fam_types, is.null)]
+      suffix <- paste0("_",need_resp)
+    } else {
+      suffix <- ""
+    }
+  } else {
+    suffix <- ""
+  }
 
 
 
@@ -327,7 +377,44 @@ ordbetareg <- function(formula=NULL,
                                                         phi_coef_prior_sd),
                                   dirichlet_prior_num=dirichlet_prior,
                                   phi_prior = phi_prior,
-                                  extra_prior=extra_prior)
+                                  extra_prior=extra_prior,
+                                  suffix=suffix)
+
+  if('mvbrmsformula' %in% class(formula)) {
+    # update formula objects with model families if they
+    # are distinct families
+
+    if(sep_fam) {
+      formula$forms <- lapply(formula$forms, function(var) {
+
+        if(!is.null(var$family)) {
+
+          return(var)
+
+        } else {
+
+          # add in all ordbetareg details here
+
+          var <- bf(var$formula,
+                    family=ordbeta_mod$family)
+
+        }
+
+      })
+
+      # get the outcome we need to change the priors
+
+      ordbeta_mod$priors$resp <- c(need_resp,need_resp,"",need_resp)
+
+
+    }
+
+  }
+
+
+
+
+
 
 
   if(use_brm_multiple) {
@@ -343,12 +430,27 @@ ordbetareg <- function(formula=NULL,
 
     } else {
 
-      brm_multiple(formula=formula, data=data,
-                   stanvars=ordbeta_mod$stanvars,
-                   family=ordbeta_mod$family,
-                   prior=ordbeta_mod$priors,
-                   inits=inits,
-                   ...)
+      if(sep_fam) {
+
+        brm_multiple(formula=formula, data=data,
+                     stanvars=ordbeta_mod$stanvars,
+                     prior=ordbeta_mod$priors,
+                     inits=inits,
+                     ...)
+
+      } else {
+
+        brm_multiple(formula=formula, data=data,
+                     stanvars=ordbeta_mod$stanvars,
+                     family=ordbeta_mod$family,
+                     prior=ordbeta_mod$priors,
+                     inits=inits,
+                     ...)
+
+
+      }
+
+
 
     }
 
@@ -367,12 +469,28 @@ ordbetareg <- function(formula=NULL,
 
     } else {
 
-      brm(formula=formula, data=data,
-          stanvars=ordbeta_mod$stanvars,
-          family=ordbeta_mod$family,
-          prior=ordbeta_mod$priors,
-          inits=inits,
-          ...)
+      if(sep_fam) {
+
+        brm(formula=formula, data=data,
+            stanvars=ordbeta_mod$stanvars,
+            prior=ordbeta_mod$priors,
+            inits=inits,
+            ...)
+
+
+      } else {
+
+        brm(formula=formula, data=data,
+            stanvars=ordbeta_mod$stanvars,
+            family=ordbeta_mod$family,
+            prior=ordbeta_mod$priors,
+            inits=inits,
+            ...)
+
+
+      }
+
+
 
     }
 
@@ -394,7 +512,8 @@ ordbetareg <- function(formula=NULL,
                              phireg_beta_prior=NULL,
                              dirichlet_prior_num=NULL,
                              phi_prior=NULL,
-                             extra_prior=NULL) {
+                             extra_prior=NULL,
+                             suffix="") {
 
   # function called primarily for its side effects
 
@@ -597,11 +716,14 @@ ordbetareg <- function(formula=NULL,
   # which represent regression coefficients on the logit
   # scale
 
+  cutzero <- paste0("cutzero",suffix)
+  cutone <- paste0("cutone",suffix)
+
   priors <- set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
-                                                          collapse=","),"]', 0, 1, cutzero, cutone)"),
+                                                          collapse=","),"]', 0, 1,", cutzero,",", cutone,")"),
                       class="cutzero") +
     set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
-                                                  collapse=","),"]', 0, 2, cutzero, cutone)"),
+                                                  collapse=","),"]', 0, 2,", cutzero,",", cutone,")"),
               class="cutone") +
     set_prior(paste0("normal(",beta_prior[1],",",beta_prior[2],")"),class="b") +
     set_prior(paste0("exponential(",phi_prior,")"),class="phi")
