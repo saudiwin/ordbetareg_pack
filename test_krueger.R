@@ -33,20 +33,67 @@ in_range <- function(x, lower, upper) {
 }
 
 n = 10000
-uncertainty = 0.5
+uncertainty = 0.1
+
+# change this so that perceived - ability, but reported is censored.
+
+over_unc <- lapply(seq(0.01,3, by=0.01), function(u) {
+
+  sim <- crossing(
+    participant = 1:n
+  ) %>%
+    mutate(
+      ability = runif(n(), 0, 1),
+      ability2 = 1.89*ability,
+      test_score=ability + rnorm(n(), 0, sd=u),
+      perceived_ab=ability + rnorm(n(), 0, sd=u),
+      # confidence = rnorm(n(), 0, sd=uncertainty),
+      # perceived_accurate=ability + confidence,
+      perceived_ab=plogis(ability),
+      perceived_test=plogis(test_score),
+      # actual = ability %>% in_range(0, 1),
+      # bias = perceived - actual,
+      # real_bias = perceived_accurate - ability
+    )
+
+  tibble(unc=u,
+         est=lm(perceived_test ~ perceived_ab, data=sim)$coefficients[2])
+
+
+}) %>% bind_rows
+
+plot(over_unc$unc, over_unc$est)
 
 sim <- crossing(
   participant = 1:n
 ) %>%
   mutate(
-    ability = rnorm(n(), 0.5, sd = 0.20),
-    confidence = rnorm(n(), 0, sd=uncertainty),
-    perceived_accurate=ability + confidence,
-    perceived=in_range(perceived_accurate,0, 1),
-    actual = ability %>% in_range(0, 1),
-    bias = perceived - actual,
-    real_bias = perceived_accurate - ability
+    ability = rbeta(n(),1,1),
+    ability2 = 1.89*ability,
+    step1 = qlogis(ability),
+    err=rnorm(n(),sd=1),
+    perceived_ab=,
+    # confidence = rnorm(n(), 0, sd=uncertainty),
+    # perceived_accurate=ability + confidence,
+    # actual = ability %>% in_range(0, 1),
+    # bias = perceived - actual,
+    # real_bias = perceived_accurate - ability
   )
+
+this_sim <- sim_ordbeta(N=1000, k=1, beta_coef=3,return_data=T,iter=1,cutpoints = c(-2,2))
+
+m1 <- ordbetareg(outcome ~ Var1 + I(Var1^2) + I(Var1^3), data=this_sim$data[[1]],backend="cmdstanr",
+                 threads=threading(16),chains=1)
+summary(m1)
+summary(lm(outcome ~ Var1 + I(Var1^2) + I(Var1^3), data=this_sim$data[[1]]))
+
+ggplot(this_sim$data[[1]], aes(y=outcome, x=Var1))  + geom_point() + stat_smooth(method="lm") +
+  geom_abline(slope=1, intercept=0, linetype=2, colour="red")
+ggplot(this_sim$data[[1]], aes(y=outcome, x=Var1))  + geom_point() + stat_smooth() +
+  geom_abline(slope=1, intercept=0, linetype=2, colour="red")
+ggplot(this_sim$data[[1]], aes(y=outcome, x=Var1))  + geom_point() + stat_smooth(method = "lm",formula = y ~ poly(x,2)) +
+  geom_abline(slope=1, intercept=0, linetype=2, colour="red")
+
 
 
 sim_quantiles <- sim %>%
