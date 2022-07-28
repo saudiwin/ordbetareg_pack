@@ -55,10 +55,11 @@ logit scale.}
 \item{phi_prior}{The mean parameter of the exponential prior on
 phi, which determines the dispersion of the beta distribution. The
 default is .1, which equals a mean of 10 and is thus weakly
-informativce. If the response has very low variance (i.e. tightly)
-clusters around a specific value, then increasing this prior may be
+informative on the interval (0.4, 30). If the response has very low variance (i.e. tightly)
+clusters around a specific value, then decreasing this prior (and increasing the expected value)
+may be
 helpful. Checking the value of phi in the output of the model command
-will reveal if 10 is too small.}
+will reveal if a value of 0.1 (mean of 10) is too small.}
 
 \item{dirichlet_prior}{A vector of three integers
 corresponding to the prior parameters for the dirchlet distribution
@@ -78,7 +79,7 @@ Default is 0.}
 regression coefficients for predicting phi, the dispersion parameter.
 Only useful if a linear model is being fit to phi.
 Default is 5, which makes the prior weakly informative on the
-logit scale.}
+exponential scale.}
 
 \item{extra_prior}{An additional prior, such as a prior for a specific
 regression coefficient, added to the model by passing one of the \code{brms}
@@ -123,6 +124,8 @@ regression model is currently not available in \code{brms} natively, this modeli
 function allows a \code{brms} model to be fit with the ordered beta regression
 distribution.
 
+For more information about the model, see the paper here: https://osf.io/preprints/socarxiv/2sx6y/.
+
 This function allows you to set priors on the dispersion parameter,
 the cutpoints, and the regression coefficients (see below for options).
 However, to add specific priors on individual covariates, you would need
@@ -142,7 +145,7 @@ this paper: https://osf.io/preprints/socarxiv/2sx6y/
 
 To cite the package, please cite the following paper:
 
-Kubinec, Robert. "Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds." \strong{Political Analysis}. 2022. Forthcoming.
+Kubinec, Robert. "Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds." \strong{Political Analysis}. 2022.
 }
 \examples{
 # load survey data that comes with the package

@@ -1,3 +1,5 @@
+library(ordbetareg)
+
 data("pew")
 
 # prepare data
@@ -31,21 +33,18 @@ ord_fit_two_mods <- ordbetareg(formula=bf(THERMO_THERMBA_W28~ education) +
 
 ord_fit_two_mods_dfam <- ordbetareg(formula=bf(THERMO_THERMBA_W28~ education, family="gaussian") +
                              bf(therm ~ region),
-                           data=model_data,use_brm_multiple = T,
+                           data=list(model_data,
+                                     model_data),
+                           use_brm_multiple = T,
                            cores=2,chains=2,sample_prior="only",
                            backend="cmdstanr")
+
 ord_fit_two_mods_mi <- ordbetareg(formula=bf(THERMO_THERMBA_W28~ education) +
                                  bf(therm ~ region),
                                data=list(model_data,model_data),
                                use_brm_multiple = T,
                                cores=2,chains=2,sample_prior="only",
                                backend="cmdstanr")
-
-ord_fit_two_mods_dfam_mi <- ordbetareg(formula=bf(THERMO_THERMBA_W28~ education, family="gaussian") +
-                                      bf(therm ~ region),
-                                    data=list(model_data,model_data),use_brm_multiple = T,
-                                    cores=2,chains=2,sample_prior="only",
-                                    backend="cmdstanr")
 
 # check with cmdstnar
 

@@ -12,6 +12,10 @@
 #'
 #' @param outcome Any non-character vector. Factors will be converted
 #' to numeric via coercion.
+#' @param true_bounds Specify this parameter with the lower and upper bound
+#'        if the observed min/max of the outcome should not be used. Useful when
+#'        an upper or lower bound exists but the observed data is less than/more than
+#'        that bound. The normalization function will respect these bounds.
 #' @return A numeric vector with an upper bound of 1 and a lower bound of
 #' 0. The original bounds are saved in the attributes "lower_bound" and
 #' "upper_bound".

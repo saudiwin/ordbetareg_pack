@@ -13,6 +13,8 @@
 #' function allows a `brms` model to be fit with the ordered beta regression
 #' distribution.
 #'
+#' For more information about the model, see the paper here: https://osf.io/preprints/socarxiv/2sx6y/.
+#'
 #' This function allows you to set priors on the dispersion parameter,
 #' the cutpoints, and the regression coefficients (see below for options).
 #' However, to add specific priors on individual covariates, you would need
@@ -49,10 +51,11 @@
 #' @param phi_prior The mean parameter of the exponential prior on
 #'  phi, which determines the dispersion of the beta distribution. The
 #'  default is .1, which equals a mean of 10 and is thus weakly
-#'  informativce. If the response has very low variance (i.e. tightly)
-#'  clusters around a specific value, then increasing this prior may be
+#'  informative on the interval (0.4, 30). If the response has very low variance (i.e. tightly)
+#'  clusters around a specific value, then decreasing this prior (and increasing the expected value)
+#'  may be
 #'  helpful. Checking the value of phi in the output of the model command
-#'  will reveal if 10 is too small.
+#'  will reveal if a value of 0.1 (mean of 10) is too small.
 #' @param dirichlet_prior A vector of three integers
 #'   corresponding to the prior parameters for the dirchlet distribution
 #'   (alpha parameter) governing the location of the cutpoints between
@@ -69,7 +72,7 @@
 #'   regression coefficients for predicting phi, the dispersion parameter.
 #'   Only useful if a linear model is being fit to phi.
 #'   Default is 5, which makes the prior weakly informative on the
-#'   logit scale.
+#'   exponential scale.
 #' @param extra_prior An additional prior, such as a prior for a specific
 #'  regression coefficient, added to the model by passing one of the `brms`
 #'  functions [brms::set_prior] or [brms::prior_string] with appropriate
@@ -146,7 +149,7 @@ ordbetareg <- function(formula=NULL,
 
     dv <- all.vars(formula$formula)[1]
 
-    formula$formula <- .update2.formula(formula$formula, "0 + Intercept + ")
+    formula$formula <- .update2.formula(formula$formula, "0 + Intercept ")
 
   } else if('mvbrmsformula' %in% class(formula)) {
 
@@ -160,7 +163,7 @@ ordbetareg <- function(formula=NULL,
 
       if(is.null(var$family)) {
 
-        var$formula <- .update2.formula(var$formula, "0 + Intercept + ")
+        var$formula <- .update2.formula(var$formula, "0 + Intercept ")
 
       }
 
@@ -172,7 +175,7 @@ ordbetareg <- function(formula=NULL,
 
     dv <- all.vars(formula)[1]
 
-    formula <- .update2.formula(formula, "0 + Intercept + ")
+    formula <- .update2.formula(formula, "0 + Intercept ")
 
   }
 
@@ -188,7 +191,7 @@ ordbetareg <- function(formula=NULL,
 
   if(use_brm_multiple) {
 
-    if(!is.list(data))
+    if(is.data.frame(data))
       stop("To use brm_multiple with ordbetareg, please pass the multiple imputed datasets as a list to the data argument.\nMice objects are not currently supported.")
 
     if(length(dv)==1) {
@@ -351,23 +354,34 @@ ordbetareg <- function(formula=NULL,
 
 
   sep_fam <- F
+  suffix <- ""
 
 
   if('mvbrmsformula' %in% class(formula)) {
     # update formula objects with model families if they
     # are distinct families
 
-    if(any(!sapply(all_fam_types, is.null))) {
+    suffix <- paste0("_",names(all_fam_types))
 
-      sep_fam <- T
+    sep_fam <- (sum(sapply(all_fam_types, function(a) !is.null(a)))>0)
+
+    if(sep_fam) {
+
       need_resp <- formula$resp[sapply(all_fam_types, is.null)]
-      suffix <- paste0("_",need_resp)
-    } else {
-      suffix <- ""
+
     }
-  } else {
-    suffix <- ""
-  }
+
+  #   if(any(!sapply(all_fam_types, is.null))) {
+  #
+  #     sep_fam <- T
+  #     need_resp <- formula$resp[sapply(all_fam_types, is.null)]
+  #     suffix <-
+  #   } else {
+  #     suffix <- ""
+  #   }
+  # } else {
+  #
+   }
 
 
 
@@ -402,9 +416,16 @@ ordbetareg <- function(formula=NULL,
 
       })
 
+      # remove any ordbetareg priors for diff families
+
+      all_fam_types <- ! (sapply(all_fam_types, is.null))
+
+      ordbeta_mod$priors <- filter(ordbeta_mod$priors, !(grepl(x=class,
+                                                               pattern="cutzero|cutone|phi") & all_fam_types[resp]))
+
       # get the outcome we need to change the priors
 
-      ordbeta_mod$priors$resp <- c(need_resp,need_resp,"",need_resp)
+      #ordbeta_mod$priors$resp <- c(need_resp,need_resp,"",need_resp)
 
 
     }
@@ -716,17 +737,55 @@ ordbetareg <- function(formula=NULL,
   # which represent regression coefficients on the logit
   # scale
 
-  cutzero <- paste0("cutzero",suffix)
-  cutone <- paste0("cutone",suffix)
+  if(length(suffix)>1) {
 
-  priors <- set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
-                                                          collapse=","),"]', 0, 1,", cutzero,",", cutone,")"),
-                      class="cutzero") +
-    set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
-                                                  collapse=","),"]', 0, 2,", cutzero,",", cutone,")"),
-              class="cutone") +
-    set_prior(paste0("normal(",beta_prior[1],",",beta_prior[2],")"),class="b") +
-    set_prior(paste0("exponential(",phi_prior,")"),class="phi")
+    # multiple outcomes
+
+    cutzero <- paste0("cutzero",suffix)
+    cutone <- paste0("cutone",suffix)
+
+    priors <- set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                            collapse=","),"]', 0, 1,", cutzero[1],",", cutone[1],")"),
+                        class="cutzero",resp=substring(suffix[1],2)) +
+      set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                    collapse=","),"]', 0, 2,", cutzero[1],",", cutone[1],")"),
+                class="cutone",resp=substring(suffix[1],2)) +
+      set_prior(paste0("normal(",beta_prior[1],",",beta_prior[2],")"),class="b",resp=substring(suffix[1],2)) +
+      set_prior(paste0("exponential(",phi_prior,")"),class="phi",resp=substring(suffix[1],2)) +
+      set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                    collapse=","),"]', 0, 1,", cutzero[2],",", cutone[2],")"),
+                class="cutzero",resp=substring(suffix[2],2)) +
+      set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                    collapse=","),"]', 0, 2,", cutzero[2],",", cutone[2],")"),
+                class="cutone",resp=substring(suffix[2],2)) +
+      set_prior(paste0("normal(",beta_prior[1],",",beta_prior[2],")"),class="b",resp=substring(suffix[2],2)) +
+      set_prior(paste0("exponential(",phi_prior,")"),class="phi",resp=substring(suffix[2],2))
+
+    priors_phireg <- set_prior("normal(0,5)",class="b") +
+      set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                    collapse=","),"]', 0, 1, cutzero, cutone)"),
+                class="cutzero") +
+      set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                    collapse=","),"]', 0, 2, cutzero, cutone)"),
+                class="cutone")
+
+  } else {
+
+
+    cutzero <- paste0("cutzero",suffix)
+    cutone <- paste0("cutone",suffix)
+
+    priors <- set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                            collapse=","),"]', 0, 1,", cutzero,",", cutone,")"),
+                        class="cutzero") +
+      set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
+                                                    collapse=","),"]', 0, 2,", cutzero,",", cutone,")"),
+                class="cutone") +
+      set_prior(paste0("normal(",beta_prior[1],",",beta_prior[2],")"),class="b") +
+      set_prior(paste0("exponential(",phi_prior,")"),class="phi")
+
+
+  }
 
   priors_phireg <- set_prior("normal(0,5)",class="b") +
     set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
@@ -735,6 +794,8 @@ ordbetareg <- function(formula=NULL,
     set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
                                                   collapse=","),"]', 0, 2, cutzero, cutone)"),
               class="cutone")
+
+
 
   if(!is.null(extra_prior)) {
 

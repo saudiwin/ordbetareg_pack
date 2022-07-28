@@ -1,3 +1,5 @@
+utils::globalVariables(c('filter','resp'))
+
 #' ordbetareg: A Model for Continuous Data with Lower and Upper Bounds
 #'
 #' The `ordbetareg` package is essentially a wrapper around `brms` that
@@ -17,7 +19,7 @@
 #'
 #' To cite the package, please cite the following paper:
 #'
-#' Kubinec, Robert. "Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds." **Political Analysis**. 2022. Forthcoming.
+#' Kubinec, Robert. "Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds." **Political Analysis**. 2022.
 #' @docType package
 #' @name ordbetareg
 NULL
