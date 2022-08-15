@@ -134,9 +134,14 @@ ordbetareg <- function(formula=NULL,
                        phi_coef_prior_mean=0,
                        phi_coef_prior_sd=5,
                        extra_prior=NULL,
-                       inits="0",
+                       init ="0",
+                       inits = NULL
                        ...) {
-
+  
+  if(!is.null(inits)){
+    init <- inits
+  }
+  
 
   if(is.null(formula)) {
 
