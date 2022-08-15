@@ -77,7 +77,7 @@
 #'  regression coefficient, added to the model by passing one of the `brms`
 #'  functions [brms::set_prior] or [brms::prior_string] with appropriate
 #'  values.
-#' @param inits This parameter is used to determine starting values for
+#' @param init This parameter is used to determine starting values for
 #'   the Stan sampler to begin Markov Chain Monte Carlo sampling. It is
 #'   set by default at 0 because the non-linear nature of beta regression
 #'   means that it is possible to begin with extreme values depending on the
@@ -87,6 +87,7 @@
 #'   with an experimental feature of `brms`, set this to `"random"` to get
 #'   more robust starting values (just be sure to scale the covariates so they are
 #'   not too large in absolute size).
+#' @param inits Alias of `init`. Overrides `init` when not NULL.
 #' @param ... All other arguments passed on to the `brm` function
 #' @return A `brms` object fitted with the ordered beta regression distribution.
 #' @examples
