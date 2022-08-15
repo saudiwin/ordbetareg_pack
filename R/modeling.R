@@ -451,7 +451,7 @@ ordbetareg <- function(formula=NULL,
                    stanvars=ordbeta_mod$stanvars,
                    family=ordbeta_mod$family,
                    prior=ordbeta_mod$priors_phireg,
-                   inits=inits,
+                   init=init,
                    ...)
 
     } else {
@@ -461,7 +461,7 @@ ordbetareg <- function(formula=NULL,
         brm_multiple(formula=formula, data=data,
                      stanvars=ordbeta_mod$stanvars,
                      prior=ordbeta_mod$priors,
-                     inits=inits,
+                     init=init,
                      ...)
 
       } else {
@@ -470,7 +470,7 @@ ordbetareg <- function(formula=NULL,
                      stanvars=ordbeta_mod$stanvars,
                      family=ordbeta_mod$family,
                      prior=ordbeta_mod$priors,
-                     inits=inits,
+                     init=init,
                      ...)
 
 
@@ -490,7 +490,7 @@ ordbetareg <- function(formula=NULL,
           stanvars=ordbeta_mod$stanvars,
           family=ordbeta_mod$family,
           prior=ordbeta_mod$priors_phireg,
-          inits=inits,
+          init=init,
           ...)
 
     } else {
@@ -500,7 +500,7 @@ ordbetareg <- function(formula=NULL,
         brm(formula=formula, data=data,
             stanvars=ordbeta_mod$stanvars,
             prior=ordbeta_mod$priors,
-            inits=inits,
+            init=init,
             ...)
 
 
@@ -510,7 +510,7 @@ ordbetareg <- function(formula=NULL,
             stanvars=ordbeta_mod$stanvars,
             family=ordbeta_mod$family,
             prior=ordbeta_mod$priors,
-            inits=inits,
+            init=init,
             ...)
 
 
