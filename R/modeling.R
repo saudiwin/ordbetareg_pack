@@ -77,7 +77,7 @@
 #'  regression coefficient, added to the model by passing one of the `brms`
 #'  functions [brms::set_prior] or [brms::prior_string] with appropriate
 #'  values.
-#' @param inits This parameter is used to determine starting values for
+#' @param init This parameter is used to determine starting values for
 #'   the Stan sampler to begin Markov Chain Monte Carlo sampling. It is
 #'   set by default at 0 because the non-linear nature of beta regression
 #'   means that it is possible to begin with extreme values depending on the
@@ -87,6 +87,7 @@
 #'   with an experimental feature of `brms`, set this to `"random"` to get
 #'   more robust starting values (just be sure to scale the covariates so they are
 #'   not too large in absolute size).
+#' @param inits Alias of `init`. Overrides `init` when not NULL.
 #' @param ... All other arguments passed on to the `brm` function
 #' @return A `brms` object fitted with the ordered beta regression distribution.
 #' @examples
@@ -134,9 +135,14 @@ ordbetareg <- function(formula=NULL,
                        phi_coef_prior_mean=0,
                        phi_coef_prior_sd=5,
                        extra_prior=NULL,
-                       inits="0",
+                       init ="0",
+                       inits = NULL
                        ...) {
-
+  
+  if(!is.null(inits)){
+    init <- inits
+  }
+  
 
   if(is.null(formula)) {
 
@@ -446,7 +452,7 @@ ordbetareg <- function(formula=NULL,
                    stanvars=ordbeta_mod$stanvars,
                    family=ordbeta_mod$family,
                    prior=ordbeta_mod$priors_phireg,
-                   inits=inits,
+                   init=init,
                    ...)
 
     } else {
@@ -456,7 +462,7 @@ ordbetareg <- function(formula=NULL,
         brm_multiple(formula=formula, data=data,
                      stanvars=ordbeta_mod$stanvars,
                      prior=ordbeta_mod$priors,
-                     inits=inits,
+                     init=init,
                      ...)
 
       } else {
@@ -465,7 +471,7 @@ ordbetareg <- function(formula=NULL,
                      stanvars=ordbeta_mod$stanvars,
                      family=ordbeta_mod$family,
                      prior=ordbeta_mod$priors,
-                     inits=inits,
+                     init=init,
                      ...)
 
 
@@ -485,7 +491,7 @@ ordbetareg <- function(formula=NULL,
           stanvars=ordbeta_mod$stanvars,
           family=ordbeta_mod$family,
           prior=ordbeta_mod$priors_phireg,
-          inits=inits,
+          init=init,
           ...)
 
     } else {
@@ -495,7 +501,7 @@ ordbetareg <- function(formula=NULL,
         brm(formula=formula, data=data,
             stanvars=ordbeta_mod$stanvars,
             prior=ordbeta_mod$priors,
-            inits=inits,
+            init=init,
             ...)
 
 
@@ -505,7 +511,7 @@ ordbetareg <- function(formula=NULL,
             stanvars=ordbeta_mod$stanvars,
             family=ordbeta_mod$family,
             prior=ordbeta_mod$priors,
-            inits=inits,
+            init=init,
             ...)
 
 
