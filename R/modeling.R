@@ -405,7 +405,7 @@ ordbetareg <- function(formula=NULL,
     # are distinct families
 
     if(sep_fam) {
-      formula$forms[1:4] <- lapply(formula$forms[1:4], function(var) {
+      formula$forms <- lapply(formula$forms, function(var) {
 
         if(!is.null(var$family)) {
 
