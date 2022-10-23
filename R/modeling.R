@@ -806,6 +806,7 @@ ordbetareg <- function(formula=NULL,
   if(!is.null(extra_prior)) {
 
     priors <- priors + extra_prior
+    priors_phireg <- priors_phireg + extra_prior
 
   }
 
