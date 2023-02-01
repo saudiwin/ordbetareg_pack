@@ -201,17 +201,13 @@ modelsummary(ord_fit_mean,statistic = "conf.int",
 There is a related package, `marginaleffects`, that allows us to convert these coefficients into more meaningful marginal effect estimates, i.e., the effect of the predictors expresses as the actual change in the outcome on the 0 - 1 scale. We can't calculate marginal effects for all of the predictors as some of them are cutpoints, etc. (the function will return an error about the intercept), so we'll focus on one of the main effects we are interested in as in the table above:
 
 ```{r marg_effect}
-
 library(marginaleffects)
 
-marg_effs <- marginaleffects(ord_fit_mean,
-                             variables="education")
-
-summary(marg_effs) %>% knitr::kable()
-
+avg_slopes(ord_fit_mean, variables="education") %>%
+  knitr::kable()
 ```
 
-We can see that we have separate marginal effects for each level of education due to modeling it as an ordinal predictor. At present the `marginaleffects` cannot calculate a single effect, though that is possible manually. As we can see with the raw coefficient in the table above, the marginal effects are all positive, though the magnitude varies across different levels of education.
+We can see that we have separate marginal effects for each level of education due to modeling it as an ordinal predictor. At present the `slopes()` function cannot calculate a single effect, though that is possible manually. As we can see with the raw coefficient in the table above, the marginal effects are all positive, though the magnitude varies across different levels of education.
 
 # Understanding Clustering/Polarization of Respondents
 
