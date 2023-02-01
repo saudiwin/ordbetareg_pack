@@ -30,7 +30,7 @@ Suggests:
     knitr,
     ggplot2,
     modelsummary,
-    marginaleffects,
+    marginaleffects (>= 0.9.0),
     haven,
     stringr,
     Hmisc
