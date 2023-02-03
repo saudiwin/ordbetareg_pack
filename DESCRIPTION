@@ -1,7 +1,7 @@
 Package: ordbetareg
 Type: Package
 Title: Ordered Beta Regression Models with Brms
-Version: 0.3.0
+Version: 0.5.0
 Authors@R: person(
   "Robert", "Kubinec",
   email = "rmk7@nyu.edu",
@@ -24,14 +24,15 @@ Depends:
     dplyr,
     brms,
     tidyr,
-    stats
+    stats,
+    ggplot2
 Suggests: 
     rmarkdown,
     knitr,
-    ggplot2,
     modelsummary,
     marginaleffects,
     haven,
     stringr,
-    Hmisc
+    Hmisc,
+    collapse
 VignetteBuilder: knitr
