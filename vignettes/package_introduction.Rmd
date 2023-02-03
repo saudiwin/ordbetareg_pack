@@ -146,6 +146,12 @@ if(run_model) {
 
 The one divergent transition referenced above is due to the well-known funnel problem of the variance of the random intercepts, and I will ignore it for the purposes of this vignette.
 
+## Changing priors
+
+The default priors in `ordbetareg` are weakly informative for data that is scaled roughly between $[-10,10]$. Outside of those scales, you may want to increase the SD of the Normal prior on regression coefficients via the `coef_prior_sd` and/or `phi_coef_prior_sd` options to `ordbetareg` (depending on whether the prior is for the coefficients in the main outcome model or the auxiliary dispersion `phi` regression). If you need to set a specific prior on the intercept, pass values to the `intercept_prior_mean`/`phi_intercept_prior_mean` and `intercept_prior_sd`/`phi_intercept_prior_sd` parameters (you need to have values for both for the prior to be set correctly) to set a Normally-distributed prior on the intercept. You can also zero out the intercept by setting a tight prior around 0, such as `intercept_prior_mean=0` and `intercept_prior_sd=0.001`.
+
+If you need to do something more involved with priors, you can use the `extra_prior`/`extra_prior_phireg` options. These can take any `brms`-specified prior, including any of the many `brms` options for priors. These options are beyond the scope of the vignette, but I refer the reader to the [`brms` documentation for more info](https://www.jstatsoft.org/article/view/v080i01).
+
 # Post-Estimation
 
 The first thing we can do is extract the model cutpoints and overlay them on the empirical distribution to see how the model is dividing the outcome into discrete-ish categories. We have to do transformation of the cutpoints using the inverse logit function in R (`plogis`) to get back values in the scale of the response, and I have to exponentiate and add the first cutpoint to get the correct value for the second cutpoint:
@@ -188,7 +194,7 @@ plots$continuous
 
 ```
 
-We can see the coefficients from the model in table formusing the `modelsummary` package, which has support for `brms` models. We'll specify only confidence intervals as other frequentist statistics have no Bayesian analogue (i.e. p-values). We'll also specify only the main effects of the ordinal predictors, and give them more informative names. 
+We can see the coefficients from the model in table form using the `modelsummary` package, which has support for `brms` models. We'll specify only confidence intervals as other frequentist statistics have no Bayesian analogue (i.e. p-values). We'll also specify only the main effects of the ordinal predictors, and give them more informative names. 
 
 ```{r coef_plot}
 
@@ -206,19 +212,42 @@ modelsummary(ord_fit_mean,statistic = "conf.int",
 
 # Marginal Effects
 
-There is a related package, `marginaleffects`, that allows us to convert these coefficients into more meaningful marginal effect estimates, i.e., the effect of the predictors expresses as the actual change in the outcome on the 0 - 1 scale. Because we have two variables in our model that are both ordinal in nature, `marginaleffects` will produce an estimate of the marginal effect of each value of each ordinal predictor. I use the `summary` function to convert the `marginaleffects` object to a table that can be easily printed:
+There is a related package, `marginaleffects`, that allows us to convert these coefficients into more meaningful marginal effect estimates, i.e., the effect of the predictors expresses as the actual change in the outcome on the 0 - 1 scale. Because we have two variables in our model that are both ordinal in nature, `marginaleffects` will produce an estimate of the marginal effect of each value of each ordinal predictor. I use the `avg_slopes` function to convert the `ordbetareg` model to a data frame of marginal/conditional effects in the scale of the outcome that can be easily printed:
 
 ```{r marg_effect}
-
 library(marginaleffects)
 
-marg_effs <- marginaleffects(ord_fit_mean)
-
-summary(marg_effs) %>% knitr::kable()
-
+avg_slopes(ord_fit_mean, variables="education") %>%
+  select(Variable="term",
+         Level="contrast",
+         `5% Quantile`="conf.low",
+         `Posterior Mean`="estimate",
+         `95% Quantile`="conf.high") %>% 
+  knitr::kable(caption = "Marginal Effect of Education on Professor Thermometer",
+               format.args=list(digits=2),
+               align=c('llccc'))
 ```
 
-We can see that we have separate marginal effects for each level of education and income due to modeling it as an ordinal predictor. As we can see with the raw coefficient in the `modelsummary` table above, the marginal effects are all positive for education and negative for income, though the magnitude varies across different levels.
+We can see that we have separate marginal effects for each level of education due to modeling it as an ordinal predictor. At present the `avg_slopes()` function cannot calculate a single effect, though that is possible manually. As we can see with the raw coefficient in the table above, the marginal effects are all positive, though the magnitude varies across different levels of education.
+
+If we wanted to rescale the coefficients to be back on the original 0 - 100 thermometer scale, we can repeat the exercise by passing a simple function to the underlying `brms` function to multiply the estimates by 100:
+
+```{r marg_effect_rescale,warn=FALSE}
+library(marginaleffects)
+
+avg_slopes(ord_fit_mean, variables="education",
+           transform=function(x) x*100) %>%
+  select(Variable="term",
+         Level="contrast",
+         `5% Quantile`="conf.low",
+         `Posterior Mean`="estimate",
+         `95% Quantile`="conf.high") %>% 
+  knitr::kable(caption = "Marginal Effect of Education on Professor Thermometer",
+               format.args=list(digits=2),
+               align=c('llccc'))
+```
+
+Note as well that the `slopes` function can calculate unit-level (row-wise) estimates of the predictors on the outcome (see `marginaleffects` documentation for more info).
 
 # Understanding Clustering/Polarization of Respondents
 

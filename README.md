@@ -5,7 +5,7 @@ This is the repository for the `ordbetareg` package, which can be used
 to fit the ordered beta regression model as specified in Kubinec (2022)
 (see paper <https://osf.io/preprints/socarxiv/2sx6y/>). This package is
 [on
-CRAN](https://cran.r-project.org/web/packages/ordbetareg/index.html),
+CRAN](https://CRAN.R-project.org/package=ordbetareg),
 but to use the development version, use this install command (requires
 the `remotes` package to be installed first):
 
@@ -17,7 +17,7 @@ topic](https://www.robertkubinec.com/post/limited_dvs/). To learn how to
 use the package, see the introduction vignette by using the
 `vignette("package_introduction", package="ordbetareg")` command at the
 R console or viewing the [vignette on
-CRAN](https://cran.r-project.org/web/packages/ordbetareg/vignettes/package_introduction.html).
+CRAN](https://CRAN.R-project.org/package=ordbetareg).
 
 If you use the package, please cite it as:
 

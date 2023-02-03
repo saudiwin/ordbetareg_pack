@@ -12,3 +12,7 @@ test
 test.stan
 test2.stan
 ols_ordbeta_compare.png
+discrete.png
+continuous.png
+ex_code_plot.R
+README.md

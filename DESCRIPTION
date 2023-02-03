@@ -1,7 +1,7 @@
 Package: ordbetareg
 Type: Package
 Title: Ordered Beta Regression Models with Brms
-Version: 0.5.0
+Version: 0.7.0
 Authors@R: person(
   "Robert", "Kubinec",
   email = "rmk7@nyu.edu",
@@ -30,7 +30,7 @@ Suggests:
     rmarkdown,
     knitr,
     modelsummary,
-    marginaleffects,
+    marginaleffects (>= 0.9.0),
     haven,
     stringr,
     Hmisc,

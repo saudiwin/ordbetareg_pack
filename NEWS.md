@@ -1,3 +1,9 @@
+# ordbetareg v0.5.0
+
+- Fixed bug disabling extra priors for phi regression/modeling.
+- Added `pp_check_ordbetareg` function for accurate posterior predictive plots for discrete and continuous outcomes.
+- Updated vignette and documentation.
+
 # ordbetareg v0.3.0
 
 - Fixed bugs relating to processing of bounded outcomes. 
