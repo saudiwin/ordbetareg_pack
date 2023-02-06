@@ -1,3 +1,9 @@
+# ordbetareg v0.7.0
+
+- Allow intercepts to receive separate priors from main effects (permitting zero-ing out intercepts).
+- Changed log-likelihood calculation to match `brms` documentation and permit point-wise 
+`loo` calculation.
+
 # ordbetareg v0.5.0
 
 - Fixed bug disabling extra priors for phi regression/modeling.

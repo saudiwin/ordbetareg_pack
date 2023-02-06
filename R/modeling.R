@@ -634,10 +634,10 @@ ordbetareg <- function(formula=NULL,
 
     }
 
-    mu <- draws$dpars$mu[, i]
-    phi <- draws$dpars$phi
-    cutzero <- draws$dpars$cutzero
-    cutone <- draws$dpars$cutone
+    mu <- brms::get_dpar(draws, "mu", i = i)
+    phi <- brms::get_dpar(draws, "phi", i = i)
+    cutzero <- brms::get_dpar(draws, "cutzero", i = i)
+    cutone <- brms::get_dpar(draws, "cutone", i = i)
     N <- draws$ndraws
 
     thresh1 <- cutzero
@@ -679,10 +679,10 @@ ordbetareg <- function(formula=NULL,
 
   posterior_epred_ord_beta_reg<- function(draws) {
 
-    cutzero <- draws$dpars$cutzero
-    cutone <- draws$dpars$cutone
+    cutzero <- brms::get_dpar(draws, "cutzero", i = i)
+    cutone <- brms::get_dpar(draws, "cutone", i = i)
 
-    mu <- draws$dpars$mu
+    mu <- brms::get_dpar(draws, "mu", i = i)
 
     thresh1 <- cutzero
     thresh2 <- cutzero + exp(cutone)
@@ -698,11 +698,11 @@ ordbetareg <- function(formula=NULL,
 
   log_lik_ord_beta_reg <- function(i, draws) {
 
-    mu <- draws$dpars$mu[,i]
-    phi <- draws$dpars$phi
+    mu <- brms::get_dpar(draws, "mu", i = i)
+    phi <- brms::get_dpar(draws, "phi", i = i)
     y <- draws$data$Y[i]
-    cutzero <- draws$dpars$cutzero
-    cutone <- draws$dpars$cutone
+    cutzero <- brms::get_dpar(draws, "cutzero", i = i)
+    cutone <- brms::get_dpar(draws, "cutone", i = i)
 
     thresh1 <- cutzero
     thresh2 <- cutzero + exp(cutone)
