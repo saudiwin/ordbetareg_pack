@@ -9,22 +9,20 @@ ordbetareg(
   formula = NULL,
   data = NULL,
   true_bounds = NULL,
-  phi_reg = FALSE,
+  phi_reg = "none",
   use_brm_multiple = FALSE,
   coef_prior_mean = 0,
-  coef_prior_sd = 5,
+  coef_prior_SD = 5,
   intercept_prior_mean = NULL,
   intercept_prior_SD = NULL,
   phi_prior = 0.1,
   dirichlet_prior = c(1, 1, 1),
   phi_coef_prior_mean = 0,
-  phi_coef_prior_sd = 5,
+  phi_coef_prior_SD = 5,
   phi_intercept_prior_mean = NULL,
   phi_intercept_prior_SD = NULL,
   extra_prior = NULL,
-  extra_prior_phireg = NULL,
   init = "0",
-  inits = NULL,
   offset = 0,
   ...
 )
@@ -42,8 +40,11 @@ don't exist in the data, pass a length 2 numeric vector
 of the minimum and maximum bounds to properly normalize
 the outcome/response}
 
-\item{phi_reg}{T/F. Whether you are including a linear model predicting
-the dispersion  parameter, phi. Defaults to false.}
+\item{phi_reg}{Whether you are including a linear model predicting
+the dispersion  parameter, phi, and/or for the response. If you are
+including models for both, pass option 'both'. If you only have an
+intercept for the outcome (i.e. a 1 in place of covariates), pass 'only'.
+If no model for phi, the default, pass 'none'.}
 
 \item{use_brm_multiple}{(T/F) Whether the model should use
 \link[brms:brm_multiple]{brms::brm_multiple} for multiple
@@ -54,7 +55,7 @@ as a list to the \code{data} argument}
 regression coefficients (for predicting the mean of the response).
 Default is 0.}
 
-\item{coef_prior_sd}{The SD of the Normal distribution prior on the
+\item{coef_prior_SD}{The SD of the Normal distribution prior on the
 regression coefficients (for predicting the mean of the response).
 Default is 5, which makes the prior weakly informative on the
 logit scale.}
@@ -62,8 +63,12 @@ logit scale.}
 \item{intercept_prior_mean}{The mean of the Normal distribution prior
 for the intercept. By default is NULL, which means the intercept
 receives the same prior as \code{coef_prior_mean}. To zero out the
-intercept, set this parameter to 0 and \code{coef_prior_sd} to a
+intercept, set this parameter to 0 and \code{coef_prior_SD} to a
 very small number (0.01 or smaller).}
+
+\item{intercept_prior_SD}{The SD of the Normal distribution prior
+for the intercept. By default is NULL, which means the intercept
+receives the same prior SD as \code{coef_prior_SD}.}
 
 \item{phi_prior}{The mean parameter of the exponential prior on
 phi, which determines the dispersion of the beta distribution. The
@@ -88,7 +93,7 @@ regression coefficients for predicting phi, the dispersion parameter.
 Only useful if a linear model is being fit to phi.
 Default is 0.}
 
-\item{phi_coef_prior_sd}{The SD of the Normal distribution prior on the
+\item{phi_coef_prior_SD}{The SD of the Normal distribution prior on the
 regression coefficients for predicting phi, the dispersion parameter.
 Only useful if a linear model is being fit to phi.
 Default is 5, which makes the prior weakly informative on the
@@ -98,16 +103,16 @@ exponential scale.}
 for the phi (dispersion) regression intercept. By default is NULL,
 which means the intercept
 receives the same prior as \code{phi_coef_prior_mean}. To zero out the
-intercept, set this parameter to 0 and \code{phi_coef_prior_sd} to a
+intercept, set this parameter to 0 and \code{phi_coef_prior_SD} to a
 very small number (0.01 or smaller).}
+
+\item{phi_intercept_prior_SD}{The SD of the Normal distribution prior
+for the phi (dispersion) regression intercept. By default is NULL,
+which means the intercept
+receives the same prior SD as \code{phi_coef_prior_SD}.}
 
 \item{extra_prior}{An additional prior, such as a prior for a specific
 regression coefficient, added to the outcome regression by passing one of the \code{brms}
-functions \link[brms:set_prior]{brms::set_prior} or \link[brms:set_prior]{brms::prior_string} with appropriate
-values.
-@param extra_prior_phireg An additional prior, such as a prior for a specific
-regression coefficient, added to the \code{phi} regression model by
-passing one of the \code{brms}
 functions \link[brms:set_prior]{brms::set_prior} or \link[brms:set_prior]{brms::prior_string} with appropriate
 values.}
 
@@ -122,21 +127,10 @@ with an experimental feature of \code{brms}, set this to \code{"random"} to get
 more robust starting values (just be sure to scale the covariates so they are
 not too large in absolute size).}
 
-\item{inits}{Alias of \code{init}. Overrides \code{init} when not NULL.}
-
 \item{offset}{Specify a hard-coded offset for the model. Default is 0
 (no offset). Also consider putting an informative prior on the intercept instead.}
 
 \item{...}{All other arguments passed on to the \code{brm} function}
-
-\item{intercept_prior_sd}{The SD of the Normal distribution prior
-for the intercept. By default is NULL, which means the intercept
-receives the same prior SD as \code{coef_prior_sd}.}
-
-\item{phi_intercept_prior_sd}{The SD of the Normal distribution prior
-for the phi (dispersion) regression intercept. By default is NULL,
-which means the intercept
-receives the same prior SD as \code{phi_coef_prior_sd}.}
 }
 \value{
 A \code{brms} object fitted with the ordered beta regression distribution.

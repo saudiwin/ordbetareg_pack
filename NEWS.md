@@ -3,6 +3,10 @@
 - Allow intercepts to receive separate priors from main effects (permitting zero-ing out intercepts).
 - Changed log-likelihood calculation to match `brms` documentation and permit point-wise 
 `loo` calculation.
+- Added animated density plots for continuous responses.
+- Improved plot formatting and added theme and label options.
+- Updated vignette to include information about `glmmTMB` as an alternative for estimation
+and new plot functions.
 
 # ordbetareg v0.5.0
 

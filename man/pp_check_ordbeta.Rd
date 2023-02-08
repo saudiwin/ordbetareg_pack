@@ -10,7 +10,10 @@ pp_check_ordbeta(
   ndraws = 10,
   cores = NULL,
   group = NULL,
-  theme = NULL
+  new_theme = NULL,
+  outcome_label = NULL,
+  animate = FALSE,
+  reverse_bounds = TRUE
 )
 }
 \arguments{
@@ -30,7 +33,16 @@ Defaults to 10.}
 rows as the data that is used to broduce grouped
 (faceted) plots of the posterior distribution.}
 
-\item{theme}{Any additional theme arguments to be added to ggplot2 (default is NULL).}
+\item{new_theme}{Any additional themes to be added to ggplot2 (default is NULL).}
+
+\item{outcome_label}{A character value that will replace the name of the outcome in the plot
+(default is the name of the response variable in the data frame).}
+
+\item{animate}{Whether to animate each posterior draw for continuous
+distributions (defaults to FALSE).}
+
+\item{reverse_bounds}{Whether to plot data using the original bounds in the data
+(i.e. not 0 and 1).}
 }
 \value{
 If "both", prints both plots and returns a list of both plots as

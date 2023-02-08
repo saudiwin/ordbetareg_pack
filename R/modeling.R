@@ -39,23 +39,26 @@
 #'   [brms::brm_multiple] for multiple
 #'   imputation over multiple dataframes passed
 #'   as a list to the `data` argument
-#' @param phi_reg T/F. Whether you are including a linear model predicting
-#'   the dispersion  parameter, phi. Defaults to false.
+#' @param phi_reg Whether you are including a linear model predicting
+#'   the dispersion  parameter, phi, and/or for the response. If you are
+#'   including models for both, pass option 'both'. If you only have an
+#'   intercept for the outcome (i.e. a 1 in place of covariates), pass 'only'.
+#'   If no model for phi, the default, pass 'none'.
 #' @param coef_prior_mean The mean of the Normal distribution prior on the
 #'   regression coefficients (for predicting the mean of the response).
 #'   Default is 0.
-#' @param coef_prior_sd The SD of the Normal distribution prior on the
+#' @param coef_prior_SD The SD of the Normal distribution prior on the
 #'   regression coefficients (for predicting the mean of the response).
 #'   Default is 5, which makes the prior weakly informative on the
 #'   logit scale.
 #' @param intercept_prior_mean The mean of the Normal distribution prior
 #' for the intercept. By default is NULL, which means the intercept
 #' receives the same prior as `coef_prior_mean`. To zero out the
-#' intercept, set this parameter to 0 and `coef_prior_sd` to a
+#' intercept, set this parameter to 0 and `coef_prior_SD` to a
 #' very small number (0.01 or smaller).
-#' @param intercept_prior_sd The SD of the Normal distribution prior
+#' @param intercept_prior_SD The SD of the Normal distribution prior
 #' for the intercept. By default is NULL, which means the intercept
-#' receives the same prior SD as `coef_prior_sd`.
+#' receives the same prior SD as `coef_prior_SD`.
 #' @param phi_prior The mean parameter of the exponential prior on
 #'  phi, which determines the dispersion of the beta distribution. The
 #'  default is .1, which equals a mean of 10 and is thus weakly
@@ -76,7 +79,7 @@
 #'   regression coefficients for predicting phi, the dispersion parameter.
 #'   Only useful if a linear model is being fit to phi.
 #'   Default is 0.
-#' @param phi_coef_prior_sd The SD of the Normal distribution prior on the
+#' @param phi_coef_prior_SD The SD of the Normal distribution prior on the
 #'   regression coefficients for predicting phi, the dispersion parameter.
 #'   Only useful if a linear model is being fit to phi.
 #'   Default is 5, which makes the prior weakly informative on the
@@ -85,19 +88,14 @@
 #' for the phi (dispersion) regression intercept. By default is NULL,
 #' which means the intercept
 #' receives the same prior as `phi_coef_prior_mean`. To zero out the
-#' intercept, set this parameter to 0 and `phi_coef_prior_sd` to a
+#' intercept, set this parameter to 0 and `phi_coef_prior_SD` to a
 #' very small number (0.01 or smaller).
-#' @param phi_intercept_prior_sd The SD of the Normal distribution prior
+#' @param phi_intercept_prior_SD The SD of the Normal distribution prior
 #' for the phi (dispersion) regression intercept. By default is NULL,
 #' which means the intercept
-#' receives the same prior SD as `phi_coef_prior_sd`.
+#' receives the same prior SD as `phi_coef_prior_SD`.
 #' @param extra_prior An additional prior, such as a prior for a specific
 #'  regression coefficient, added to the outcome regression by passing one of the `brms`
-#'  functions [brms::set_prior] or [brms::prior_string] with appropriate
-#'  values.
-#'  @param extra_prior_phireg An additional prior, such as a prior for a specific
-#'  regression coefficient, added to the `phi` regression model by
-#'  passing one of the `brms`
 #'  functions [brms::set_prior] or [brms::prior_string] with appropriate
 #'  values.
 #' @param init This parameter is used to determine starting values for
@@ -110,7 +108,6 @@
 #'   with an experimental feature of `brms`, set this to `"random"` to get
 #'   more robust starting values (just be sure to scale the covariates so they are
 #'   not too large in absolute size).
-#' @param inits Alias of `init`. Overrides `init` when not NULL.
 #' @param offset Specify a hard-coded offset for the model. Default is 0
 #' (no offset). Also consider putting an informative prior on the intercept instead.
 #' @param ... All other arguments passed on to the `brm` function
@@ -151,28 +148,22 @@
 ordbetareg <- function(formula=NULL,
                        data=NULL,
                        true_bounds=NULL,
-                       phi_reg=FALSE,
+                       phi_reg='none',
                        use_brm_multiple=FALSE,
                        coef_prior_mean=0,
-                       coef_prior_sd=5,
+                       coef_prior_SD=5,
                        intercept_prior_mean=NULL,
                        intercept_prior_SD=NULL,
                        phi_prior=.1,
                        dirichlet_prior=c(1,1,1),
                        phi_coef_prior_mean=0,
-                       phi_coef_prior_sd=5,
+                       phi_coef_prior_SD=5,
                        phi_intercept_prior_mean=NULL,
                        phi_intercept_prior_SD=NULL,
                        extra_prior=NULL,
-                       extra_prior_phireg=NULL,
                        init ="0",
-                       inits = NULL,
                        offset=0,
                        ...) {
-
-  if(!is.null(inits)){
-    init <- inits
-  }
 
   if(!is.numeric(offset)) {
 
@@ -433,17 +424,17 @@ ordbetareg <- function(formula=NULL,
 
 
   ordbeta_mod <- .load_ordbetareg(beta_prior=c(coef_prior_mean,
-                                               coef_prior_sd),
+                                               coef_prior_SD),
                                   intercept_prior=c(intercept_prior_mean,
                                                     intercept_prior_SD),
                                   phireg_beta_prior = c(phi_coef_prior_mean,
-                                                        phi_coef_prior_sd),
+                                                        phi_coef_prior_SD),
                                   phireg_intercept_prior=c(phi_intercept_prior_mean,
                                                            phi_intercept_prior_SD),
                                   dirichlet_prior_num=dirichlet_prior,
-                                  phi_prior = phi_prior,
+                                  phi_reg=phi_reg,
+                                  phi_prior=phi_prior,
                                   extra_prior=extra_prior,
-                                  extra_prior_phireg=extra_prior_phireg,
                                   suffix=suffix)
 
   if('mvbrmsformula' %in% class(formula)) {
@@ -487,23 +478,12 @@ ordbetareg <- function(formula=NULL,
 
   if(use_brm_multiple) {
 
-    if(phi_reg) {
-
-      out_obj <- brm_multiple(formula=formula, data=data,
-                   stanvars=ordbeta_mod$stanvars,
-                   family=ordbeta_mod$family,
-                   prior=ordbeta_mod$priors_phireg,
-                   inits=init,
-                   ...)
-
-    } else {
-
       if(sep_fam) {
 
         out_obj <- brm_multiple(formula=formula, data=data,
                      stanvars=ordbeta_mod$stanvars,
                      prior=ordbeta_mod$priors,
-                     inits=init,
+                     init=init,
                      ...)
 
       } else {
@@ -512,37 +492,20 @@ ordbetareg <- function(formula=NULL,
                      stanvars=ordbeta_mod$stanvars,
                      family=ordbeta_mod$family,
                      prior=ordbeta_mod$priors,
-                     inits=init,
+                     init=init,
                      ...)
 
 
       }
 
-
-
-    }
-
-
-
   } else {
-
-    if(phi_reg) {
-
-      out_obj <- brm(formula=formula, data=data,
-          stanvars=ordbeta_mod$stanvars,
-          family=ordbeta_mod$family,
-          prior=ordbeta_mod$priors_phireg,
-          inits=init,
-          ...)
-
-    } else {
 
       if(sep_fam) {
 
         out_obj <- brm(formula=formula, data=data,
             stanvars=ordbeta_mod$stanvars,
             prior=ordbeta_mod$priors,
-            inits=init,
+            init=init,
             ...)
 
 
@@ -552,21 +515,29 @@ ordbetareg <- function(formula=NULL,
             stanvars=ordbeta_mod$stanvars,
             family=ordbeta_mod$family,
             prior=ordbeta_mod$priors,
-            inits=init,
+            init=init,
             ...)
 
 
       }
-
-
-
-    }
 
   }
 
 
 
     class(out_obj) <- c(class(out_obj),"ordbetareg")
+
+    if(use_brm_multiple) {
+
+
+    } else {
+
+      out_obj$upper_bound <- attr(data[[dv_pos]],'upper_bound')
+      out_obj$lower_bound <- attr(data[[dv_pos]],'lower_bound')
+
+    }
+
+
 
     return(out_obj)
 
@@ -580,12 +551,12 @@ ordbetareg <- function(formula=NULL,
 #' @noRd
 .load_ordbetareg <- function(beta_prior=NULL,
                              intercept_prior=NULL,
+                             phi_reg=NULL,
                              phireg_beta_prior=NULL,
                              phireg_intercept_prior=NULL,
                              dirichlet_prior_num=NULL,
                              phi_prior=NULL,
                              extra_prior=NULL,
-                             extra_prior_phireg=NULL,
                              suffix="") {
 
   # custom family
@@ -679,10 +650,10 @@ ordbetareg <- function(formula=NULL,
 
   posterior_epred_ord_beta_reg<- function(draws) {
 
-    cutzero <- brms::get_dpar(draws, "cutzero", i = i)
-    cutone <- brms::get_dpar(draws, "cutone", i = i)
+    cutzero <- brms::get_dpar(draws, "cutzero")
+    cutone <- brms::get_dpar(draws, "cutone")
 
-    mu <- brms::get_dpar(draws, "mu", i = i)
+    mu <- brms::get_dpar(draws, "mu")
 
     thresh1 <- cutzero
     thresh2 <- cutzero + exp(cutone)
@@ -843,27 +814,34 @@ ordbetareg <- function(formula=NULL,
                         class="cutzero") +
       set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
                                                     collapse=","),"]', 0, 2,", cutzero,",", cutone,")"),
-                class="cutone") +
-      set_prior(paste0("normal(",beta_prior[1],",",beta_prior[2],")"),class="b") +
-      set_prior(paste0("exponential(",phi_prior,")"),class="phi")
+                class="cutone")
 
+    # only do phi reg priors for univariate models
+
+    if(phi_reg=='both') {
+
+      priors <- priors + set_prior(paste0("normal(",beta_prior[1],",",beta_prior[2],")"),class="b") +
+        set_prior(paste0("normal(",phireg_beta_prior[1],",",phireg_beta_prior[2],")"),class="b",dpar="phi")
+
+    } else if(phi_reg=='none') {
+
+      priors <- priors + set_prior(paste0("exponential(",phi_prior,")"),class="phi") +
+        set_prior(paste0("normal(",beta_prior[1],",",beta_prior[2],")"),class="b")
+
+    } else if(phi_reg=='only') {
+
+      priors <- priors + set_prior(paste0("normal(",beta_prior[1],",",beta_prior[2],")"),class="b") +
+        set_prior(paste0("normal(",phireg_beta_prior[1],",",phireg_beta_prior[2],")"),class="b",dpar="phi")
+
+    }
 
   }
-
-  priors_phireg <- set_prior("normal(0,5)",class="b",dpar="phi") +
-    set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
-                                                  collapse=","),"]', 0, 1, cutzero, cutone)"),
-              class="cutzero") +
-    set_prior(paste0("induced_dirichlet([",paste0(dirichlet_prior_num,
-                                                  collapse=","),"]', 0, 2, cutzero, cutone)"),
-              class="cutone")
 
 
 
   if(!is.null(extra_prior)) {
 
     priors <- priors + extra_prior
-    priors_phireg <- priors_phireg + extra_prior_phireg
 
   }
 
@@ -874,9 +852,9 @@ ordbetareg <- function(formula=NULL,
 
   }
 
-  if(!is.null(phireg_intercept_prior)) {
+  if(!is.null(phireg_intercept_prior) && phi_reg) {
 
-    priors_phireg <- priors_phireg + set_prior(paste0("normal(",phireg_intercept_prior[1],",",phireg_intercept_prior[2],")"),
+    priors<- priors + set_prior(paste0("normal(",phireg_intercept_prior[1],",",phireg_intercept_prior[2],")"),
                                                class="Intercept",dpar="phi")
 
   }
@@ -888,7 +866,6 @@ ordbetareg <- function(formula=NULL,
   #   set_prior("exponential(.1)",class="phi")
 
   return(list(priors=priors,
-              priors_phireg=priors_phireg,
               stanvars=stanvars,
               log_lik=log_lik_ord_beta_reg,
               posterior_epred=posterior_epred_ord_beta_reg,

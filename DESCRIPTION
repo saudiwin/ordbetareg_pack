@@ -20,12 +20,15 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Depends: 
     R (>= 3.5),
+    brms (>= 2.18.0),
+    stats
+Imports:
+    transformr,
     faux,
     dplyr,
-    brms,
-    tidyr,
-    stats,
-    ggplot2
+    ggplot2 (>= 3.4.0),
+    gganimate,
+    tidyr
 Suggests: 
     rmarkdown,
     knitr,
@@ -34,5 +37,7 @@ Suggests:
     haven,
     stringr,
     Hmisc,
-    collapse
+    collapse,
+    ggthemes,
+    glmmTMB
 VignetteBuilder: knitr
