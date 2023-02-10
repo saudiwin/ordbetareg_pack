@@ -11,18 +11,6 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.align="center",
-  fig.width=7,
-  fig.height=3
-)
-options(rmarkdown.html_vignette.check_title = FALSE)
-```
-
-
 ```{r setup, include = FALSE}
 
 library(ordbetareg)
@@ -34,11 +22,24 @@ library(tidyr)
 library(stringr)
 library(Hmisc)
 library(glmmTMB)
+library(modelsummary)
+library(marginaleffects)
 
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.align="center",
+  fig.width=7,
+  fig.height=3
+)
+options(rmarkdown.html_vignette.check_title = FALSE)
+
+set.seed(628871)
 
 ```
 
@@ -50,6 +51,8 @@ The ordered beta regression model is designed explicitly for data with upper and
 This notebook contains instructions for running the ordered beta regression model in the R package `ordbetareg`. `ordbetareg` is a front-end to `brms`, a very powerful regression modeling package based on the [Stan Hamiltonian Markov Chain Monte Carlo](https://mc-stan.org/) sampler. I only show in this vignette a small part of the features which are available via `brms`, and I refer the user to the [copious documentation describing the features of the brms package](https://paul-buerkner.github.io/brms/). Suffice it to say that most kinds of regression models can be fit with the software, including hierarchical, dynamic, nonlinear and multivariate models (or all of the above in combination). The `ordbetareg` package allows for all of these features to be used with the ordered regression model distribution by adding this distribution to `brms`.
 
 In addition, I show in this vignette how to fit the package compares to fitting the ordered beta regression model with the R package [`glmmTMB`](https://glmmtmb.github.io/glmmTMB/). `glmmTMB` uses maximum likelihood and related methods, so it is much faster than the Bayesian inference employed by `ordbetareg`, although it has less flexibility and fewer options in terms of model possibilities.
+
+The reproducible Rmarkdown file this vignette is compiled from can be accessed from [the package Github site](https://github.com/saudiwin/ordbetareg_pack/blob/master/vignettes/package_introduction.Rmd).
 
 If you use the model in a paper, please cite it as:
 
@@ -68,7 +71,7 @@ If you prefer to run `brms` directly rather than use this package, you can run t
 
 # Data Preparation
 
-In this vignette I use an empirical application from data from a Pew Forum survey built into the package to show how the package works. This data contains a bounded response from a question about respondents' views towards college professors:
+In this vignette I use an empirical application from data from a Pew Forum survey built into the package to show how the package works. It is also possible to generate simulated ordered beta data using the `rordbeta` function, as I do later in this guide. The following plot shows a histogram of respondents' views towards college professors based on a bounded 0 to 100 scale:
 
 ```{r load_data}
 
@@ -135,7 +138,7 @@ if(run_model) {
                 refresh=0)
                 # NOTE: to do parallel processing within chains
                 # add the options below
-                #threads=threading(5),
+                #threads=5,
                 #backend="cmdstanr"
                 #where threads is the number of cores per chain
                 # you must have cmdstanr set up to do so
@@ -281,7 +284,12 @@ As mentioned, `glmmTMB` added support in 2022 for the ordered beta regression mo
 
 ```{r fit_tmb}
 
+# need to normalize first to 0 and 1
+
 model_data$therm_norm <- (model_data$therm - min(model_data$therm))/(max(model_data$therm) - min(model_data$therm))
+
+# fit requires specification of priors on cutpoints (labeled as psi)
+# will not be required in future versions of glmmTMB
 
 glmm_tmb_fit <- glmmTMB(therm_norm ~ approval + (1|region),
                         data=model_data,
@@ -290,8 +298,116 @@ glmm_tmb_fit <- glmmTMB(therm_norm ~ approval + (1|region),
 
 modelsummary(glmm_tmb_fit)
 
+# marginaleffects doesn't support default calculation for 
+# standard errors for this model, so we need to 
+# use a different method to derive uncertainty for
+# marginal effects on the [0,1] scale
+
+# code here is commented out because it will take a while 
+# to run, but it does work
+
+# avg_slopes(glmm_tmb_fit,vcov = FALSE) %>% inferences(method="boot")
+
 ```
 
+
+# Multiple Imputation
+
+`ordbetareg` supports `brms` functions for using multiple imputed datasets and for multivariate (multiple response) modeling, at least with two response variables. `brms` is able to apply the model to a list of multiple-imputed datasets (created with other packages such as `mice`) and then combine the resulting models into a single posterior distribution, which makes it very easy to do inference. I first demonstrate briefly how to do this and also multivariate modeling, but I refer the user to the `brms` documentation for more details.
+
+In the code below I use the `rordbeta` function to simulate some ordered beta responses given a covariate, then create missing values by replacing some values at random with `NA`. I use the `mice` package to impute this missing data, creating two imputed datasets which I then feed into `ordbetareg` and set the `use_brm_multiple` option to `TRUE`:
+
+```{r mult_impute}
+
+# simplify things by using one covariate within the [0,1] interval
+
+X <- runif(n = 100,0,1)
+outcome <- rordbeta(n=100,mu = 0.3 * X, phi =3, cutpoints=c(-2,2))
+
+# set 10% of values of X randomly to NA
+
+X[runif(n=100)<0.1] <- NA
+
+# create a list of two imputed datasets with package mice
+
+mult_impute <- mice::mice(data=tibble(outcome=outcome,
+                                      X=X),m=2,printFlag = FALSE) %>% 
+  mice::complete(action="all")
+
+# pass list to the data argument and set use_brm_multiple to TRUE
+
+if(run_model) {
+  
+  fit_imputed <- ordbetareg(formula = outcome ~ X,
+                            data=mult_impute,
+                            use_brm_multiple = T)
+  
+} else {
+  
+  data('fit_imputed')
+  
+}
+
+# all functions now work as though the model had only one dataset
+# imputation uncertainty included in all results/analyses
+# marginal effects, though, only incorporate one imputed dataset
+
+modelsummary(fit_imputed,statistic = 'conf.int')
+avg_slopes(fit_imputed)
+```
+
+# Multivariate Modeling and Mediation Analysis
+
+In the following code, I show how to model a Gaussian/Normally-distributed variable and an ordered beta regression model together. This is useful when examining the role of a mediator, which we will simulate here as a Normally-distributed variable `Z`. In order to specify a different distribution than ordered beta, the `family` parameter must be specified in the `bf` formula function. Otherwise the function assumes that the distribution is ordered beta.
+
+```{r mult_variate}
+
+  # generate a new Gaussian/Normal outcome with same predictor X and mediator
+  # Z
+
+  X <- runif(n = 100,0,1)
+
+  Z <- rnorm(100, mean=3*X)
+  
+  # use logit function to map unbounded continuous data to [0,1] interval
+  # X is mediated by Z
+
+  outcome <- rordbeta(n=100, mu = plogis(.4 * X + 1.5 * Z))
+  
+
+  # use the bf function from brms to specify two formulas/responses
+  # set_rescor must be FALSE as one distribution is not Gaussian (ordered beta)
+  
+  # OLS for mediator
+  mod1 <- bf(Z ~ X,family = gaussian)
+  # ordered beta
+  mod2 <- bf(outcome ~ X + Z)
+
+if(run_model) {
+  
+  fit_multivariate <- ordbetareg(formula=mod1 + mod2 + set_rescor(FALSE),
+                                 data=tibble(outcome=outcome,
+                                             X=X,Z=Z))
+  
+}
+  
+  modelsummary(fit_multivariate,statistic = "conf.int")
+  
+  # need to calculate each sub-model's marginal effects separately
+  
+  avg_slopes(fit_multivariate,resp="outcome")
+  avg_slopes(fit_multivariate, resp="Z")
+
+```
+
+To estimate the indirect effect of `X` on `outcome` that is mediated by `Z`, we can use the package `bayestestR`:
+
+```{r mediation}
+
+bayestestR::mediation(fit_multivariate)
+
+```
+Because the effect of `Z` on the outcome is positive, and `X` has a positive direct (unmediated effect) on the outcome, the total effect of `X` on the outcome is larger than the direct effect of `X` without considering mediation.
 
 # Understanding Clustering/Polarization of Respondents
 

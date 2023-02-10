@@ -183,7 +183,7 @@ ordbetareg <- function(formula=NULL,
 
     dv <- all.vars(formula$formula)[1]
 
-    formula$formula <- .update2.formula(formula$formula, paste0(offset," + Intercept "))
+    #formula$formula <- .update2.formula(formula$formula, paste0(offset," + Intercept "))
 
   } else if('mvbrmsformula' %in% class(formula)) {
 
@@ -193,23 +193,23 @@ ordbetareg <- function(formula=NULL,
 
     })
 
-    formula$forms <- lapply(formula$forms, function(var) {
-
-      if(is.null(var$family)) {
-
-        var$formula <- .update2.formula(var$formula, paste0(offset," + Intercept "))
-
-      }
-
-        var
-
-    })
+    # formula$forms <- lapply(formula$forms, function(var) {
+    #
+    #   if(is.null(var$family)) {
+    #
+    #     var$formula <- .update2.formula(var$formula, paste0(offset," + Intercept "))
+    #
+    #   }
+    #
+    #     var
+    #
+    # })
 
   } else {
 
     dv <- all.vars(formula)[1]
 
-    formula <- .update2.formula(formula, paste0(offset," + Intercept "))
+    #formula <- .update2.formula(formula, paste0(offset," + Intercept "))
 
   }
 
@@ -850,6 +850,9 @@ ordbetareg <- function(formula=NULL,
     priors <- priors + set_prior(paste0("normal(",intercept_prior[1],",",intercept_prior[2],")"),
                                  coef="Intercept",class="b")
 
+    # priors <- priors + set_prior(constant(0),
+    #                              coef="Intercept",class="b")
+
   }
 
   if(!is.null(phireg_intercept_prior) && phi_reg) {
@@ -858,12 +861,6 @@ ordbetareg <- function(formula=NULL,
                                                class="Intercept",dpar="phi")
 
   }
-
-
-  # priors <- set_prior("normal(0,5)",class="b") +
-  #   prior(constant(0),class="b",coef="Intercept") +
-  #   prior_string("target += normal_lpdf((cutzero + exp(cutone)) - cutzero|0,3) + cutone",check=F) +
-  #   set_prior("exponential(.1)",class="phi")
 
   return(list(priors=priors,
               stanvars=stanvars,
@@ -875,7 +872,7 @@ ordbetareg <- function(formula=NULL,
 
 }
 
-#' Helper function to add 0 + Intercept to function call\
+#' Helper function to add 0 + Intercept to function call
 #' @importFrom stats as.formula dbeta plogis qlogis quantile rbeta rnorm runif update var
 #' @noRd
 .update2.formula <- function (old, new, ...)

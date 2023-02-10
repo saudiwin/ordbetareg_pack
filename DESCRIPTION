@@ -39,5 +39,7 @@ Suggests:
     Hmisc,
     collapse,
     ggthemes,
-    glmmTMB
+    glmmTMB,
+    mice,
+    bayestestR
 VignetteBuilder: knitr
