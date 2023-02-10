@@ -183,6 +183,7 @@ Kubinec, Robert. "Ordered Beta Regression: A Parsimonious, Well-Fitting Model fo
 \examples{
 # load survey data that comes with the package
 
+library(dplyr)
 data("pew")
 
 # prepare data

@@ -94,6 +94,8 @@ with one row per simulation draw and covariate \code{k}.
 
 data("sim_data")
 
+library(dplyr)
+
 # will take a while to run this
 \donttest{
     sim_data <- sim_ordbeta(N=c(250,750),

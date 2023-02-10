@@ -115,6 +115,7 @@
 #' @examples
 #' # load survey data that comes with the package
 #'
+#' library(dplyr)
 #' data("pew")
 #'
 #' # prepare data
@@ -947,6 +948,8 @@ ordbetareg <- function(formula=NULL,
 #' # result looks like
 #'
 #' data("sim_data")
+#'
+#' library(dplyr)
 #'
 #' # will take a while to run this
 #' \donttest{

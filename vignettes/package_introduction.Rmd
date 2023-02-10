@@ -244,7 +244,6 @@ modelsummary(ord_fit_mean,statistic = "conf.int",
 There is a related package, `marginaleffects`, that allows us to convert these coefficients into more meaningful marginal effect estimates, i.e., the effect of the predictors expresses as the actual change in the outcome on the 0 - 1 scale. Because we have two variables in our model that are both ordinal in nature, `marginaleffects` will produce an estimate of the marginal effect of each value of each ordinal predictor. I use the `avg_slopes` function to convert the `ordbetareg` model to a data frame of marginal/conditional effects in the scale of the outcome that can be easily printed:
 
 ```{r marg_effect}
-library(marginaleffects)
 
 avg_slopes(ord_fit_mean, variables="education") %>%
   select(Variable="term",
@@ -415,14 +414,14 @@ As I explain in the paper, one of the main advantages of using a Beta regression
 
 The one change we need to make to fit this model is to add a formula predicting `phi` in the code below. Because we now have two formulas--one for the mean and one for dispersion--I use the `bf` function to indicate these two sub-models. I also need to specify `phi_reg` to be TRUE because some of the priors will change. 
 
-Because there is no need to model the mean, I leave the first formula as `therm ~ 0`. I don't specify 1 for an intercept because the ordered regression model has other intercepts (i.e., the cutpoints). I then specify a separate model for `phi` with an interaction between `age` and `sex` to see if these covariates are associated with dispersion.
+Because there is no need to model the mean, I leave the first formula as `therm ~ 1` with the 1 representing only an intercept, not a covariate. I then specify a separate model for `phi` with an interaction between `age` and `sex` to see if these covariates are associated with dispersion.
 
 
 ```{r run_brms_phi}
 
 if(run_model) {
   
-  ord_fit_phi <- ordbetareg(bf(therm ~ 0, 
+  ord_fit_phi <- ordbetareg(bf(therm ~ 1, 
                 phi ~ age + sex),
                 phi_reg = T,
                 data=model_data,

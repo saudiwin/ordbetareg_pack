@@ -28,3 +28,24 @@ the mean (\code{mu}), dispersion (\code{phi}) and cutpoints
 governing the ratio of degenerate (discrete) to continuous
 responses.
 }
+\examples{
+
+# examine density (likelihood) of different possible values
+# given fixed values for ordered beta parameters
+
+x <- seq(0, 1, by=0.01)
+
+x_dens <- dordbeta(x, mu = 0.3, phi=2, cutpoints=c(-2, 2))
+
+# Most likely value for x is approx 1
+# Note discontinuity in density function between continuous/discrete values
+# density function is a combined PMF/PDF, so not a real PDF
+# can though be used for MLE
+
+plot(x_dens, x)
+
+# discrete values should be compared to each other:
+# prob of discrete 0 > prob of discrete 1
+
+x_dens[x==0] > x_dens[x==1]
+}

@@ -7,6 +7,8 @@
 - Improved plot formatting and added theme and label options.
 - Updated vignette to include information about `glmmTMB` as an alternative for estimation
 and new plot functions.
+- Added distribution `rordbeta` and `dordbeta` functions.
+- Removed legacy `0 + Intercept` function code. Now accepts any kind of formula.
 
 # ordbetareg v0.5.0
 

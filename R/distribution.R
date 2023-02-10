@@ -21,7 +21,7 @@
 #' @param cutpoints A vector of two numeric values for the cutpoints. Second value should
 #' @param log where to return the log density
 #' be strictly greater than the first value.
-#' @example
+#' @examples
 #'
 #' # examine density (likelihood) of different possible values
 #' # given fixed values for ordered beta parameters
