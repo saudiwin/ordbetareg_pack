@@ -134,7 +134,7 @@ if(run_model) {
                                (1|region), 
                        data=model_data,
                        control=list(adapt_delta=0.95),
-                cores=2,chains=2,iter=1000,
+                cores=2,chains=2,iter=500,
                 refresh=0)
                 # NOTE: to do parallel processing within chains
                 # add the options below
@@ -339,7 +339,8 @@ if(run_model) {
   
   fit_imputed <- ordbetareg(formula = outcome ~ X,
                             data=mult_impute,
-                            use_brm_multiple = T)
+                            use_brm_multiple = T,
+                                 cores=1,chains=1, iter=500)
   
 } else {
   
@@ -386,7 +387,8 @@ if(run_model) {
   
   fit_multivariate <- ordbetareg(formula=mod1 + mod2 + set_rescor(FALSE),
                                  data=tibble(outcome=outcome,
-                                             X=X,Z=Z))
+                                             X=X,Z=Z),
+                                 cores=1,chains=1, iter=500)
   
 }
   
@@ -425,7 +427,7 @@ if(run_model) {
                 phi ~ age + sex),
                 phi_reg = T,
                 data=model_data,
-                cores=2,chains=2,iter=1000,
+                cores=2,chains=2,iter=500,
                 refresh=0)
                 # NOTE: to do parallel processing within chains
                 # add the options below
