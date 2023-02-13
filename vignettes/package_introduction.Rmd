@@ -134,7 +134,7 @@ if(run_model) {
                                (1|region), 
                        data=model_data,
                        control=list(adapt_delta=0.95),
-                cores=2,chains=2,iter=500,
+                cores=1,chains=1,iter=500,
                 refresh=0)
                 # NOTE: to do parallel processing within chains
                 # add the options below
