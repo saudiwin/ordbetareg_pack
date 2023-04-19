@@ -1,7 +1,7 @@
 Package: ordbetareg
 Type: Package
-Title: Ordered Beta Regression Models with Brms
-Version: 0.7.0
+Title: Ordered Beta Regression Models with 'brms'
+Version: 0.7.1
 Authors@R: person(
   "Robert", "Kubinec",
   email = "rmk7@nyu.edu",
@@ -18,14 +18,13 @@ Encoding: UTF-8
 LazyData: true
 LazyDataCompression: xz
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3
 Depends: 
     R (>= 3.5),
     brms (>= 2.18.0),
     stats
 Imports:
     transformr,
-    faux,
     dplyr,
     ggplot2 (>= 3.4.0),
     gganimate,
@@ -34,7 +33,7 @@ Suggests:
     rmarkdown,
     knitr,
     modelsummary,
-    marginaleffects (>= 0.9.0),
+    marginaleffects (>= 0.10.0),
     haven,
     stringr,
     Hmisc,
@@ -42,5 +41,6 @@ Suggests:
     ggthemes,
     glmmTMB,
     mice,
-    bayestestR
+    bayestestR,
+    kableExtra
 VignetteBuilder: knitr

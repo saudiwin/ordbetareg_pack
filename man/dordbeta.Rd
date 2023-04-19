@@ -21,6 +21,10 @@ length is greater than 1, should be of length x.}
 \item{log}{where to return the log density
 be strictly greater than the first value.}
 }
+\value{
+Returns a vector of length \code{x} of the density of the ordered beta distribution
+conditional on \code{mu} and \code{phi}.
+}
 \description{
 This function will return the density of given variates of the
 ordered beta distribution conditional on values for

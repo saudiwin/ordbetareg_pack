@@ -42,7 +42,7 @@ trans_outcome <- normalize(outcome=outcome)
 summary(trans_outcome)
 
 # only works with numeric vectors and factors
-\dontrun{
-  normalize(outcome=c('a','b'))
-}
+
+  try(normalize(outcome=c('a','b')))
+
 }

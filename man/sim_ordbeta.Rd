@@ -9,7 +9,6 @@ sim_ordbeta(
   k = 5,
   iter = 1000,
   cores = 1,
-  rho = 0.5,
   phi = 1,
   cutpoints = c(-1, 1),
   beta_coef = NULL,
@@ -30,8 +29,6 @@ to examine power/results for multiple sample sizes.}
 should be at least 500 (yes, this will take some time).}
 
 \item{cores}{The number of cores to use to parallelize the simulation.}
-
-\item{rho}{The correlation (between -1 and 1) of the predictors \code{k}.}
 
 \item{phi}{Value of the dispersion parameter in the beta distribution.}
 
@@ -81,8 +78,8 @@ via simulating the ordered beta regression model.
 \details{
 This function implements the simulation found in Kubinec (2022). This
 simulation allows you to vary the sample size, number & type of predictors,
-values of the predictors (or treatment values), correlation between
-predictors, and the power to target. The function returns a data frame
+values of the predictors (or treatment values), and the power to target.
+The function returns a data frame
 with one row per simulation draw and covariate \code{k}.
 }
 \examples{

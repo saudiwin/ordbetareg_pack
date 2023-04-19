@@ -29,9 +29,9 @@
 #' summary(trans_outcome)
 #'
 #' # only works with numeric vectors and factors
-#' \dontrun{
-#'   normalize(outcome=c('a','b'))
-#' }
+#'
+#'   try(normalize(outcome=c('a','b')))
+#'
 #' @export
 normalize <- function(outcome,true_bounds=NULL) {
 
@@ -43,7 +43,7 @@ normalize <- function(outcome,true_bounds=NULL) {
 
   if(is.factor(outcome)) {
 
-    print("Converting factor response variable to numeric.")
+    message("Converting factor response variable to numeric.")
 
     outcome <- as.numeric(outcome)
 
@@ -64,7 +64,7 @@ normalize <- function(outcome,true_bounds=NULL) {
     min_out <- min(outcome, na.rm=T)
     max_out <- max(outcome, na.rm=T)
 
-    print(paste0("Normalizing using the observed bounds of ",min_out, " - ",
+    message(paste0("Normalizing using the observed bounds of ",min_out, " - ",
                  max_out,". If these are incorrect, please pass the bounds to use to the true_bounds parameter."))
 
   }

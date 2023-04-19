@@ -21,6 +21,8 @@
 #' @param cutpoints A vector of two numeric values for the cutpoints. Second value should
 #' @param log where to return the log density
 #' be strictly greater than the first value.
+#' @return Returns a vector of length `x` of the density of the ordered beta distribution
+#'  conditional on `mu` and `phi`.
 #' @examples
 #'
 #' # examine density (likelihood) of different possible values
@@ -136,6 +138,7 @@ dordbeta <- function(x=.9,
 #' length is greater than 1, should be of length `n`.
 #' @param cutpoints A vector of two numeric values for the cutpoints. Second value should
 #' be strictly greater than the first value.
+#' @return A vector of length `n` of variates from the ordered beta distribution.
 #' @examples
 #'
 #' # generate 100 random variates with an average of 0.7

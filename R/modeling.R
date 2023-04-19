@@ -891,6 +891,8 @@ ordbetareg <- function(formula=NULL,
 
 }
 
+# @importFrom faux rnorm_multi
+# @param rho The correlation (between -1 and 1) of the predictors `k`.
 
 #' Power Calculation via Simulation of the Ordered Beta Regression Model
 #'
@@ -899,8 +901,8 @@ ordbetareg <- function(formula=NULL,
 #'
 #' This function implements the simulation found in Kubinec (2022). This
 #' simulation allows you to vary the sample size, number & type of predictors,
-#' values of the predictors (or treatment values), correlation between
-#' predictors, and the power to target. The function returns a data frame
+#' values of the predictors (or treatment values), and the power to target.
+#' The function returns a data frame
 #' with one row per simulation draw and covariate `k`.
 #' @param N The sample size for the simulation. Include a vector of integers
 #'   to examine power/results for multiple sample sizes.
@@ -908,7 +910,6 @@ ordbetareg <- function(formula=NULL,
 #' @param iter The number of simulations to run. For power calculation,
 #'   should be at least 500 (yes, this will take some time).
 #' @param cores The number of cores to use to parallelize the simulation.
-#' @param rho The correlation (between -1 and 1) of the predictors `k`.
 #' @param phi Value of the dispersion parameter in the beta distribution.
 #' @param cutpoints Value of the two cutpoints for the ordered model.
 #'   By default are the values -1 and +1 (these are interpreted in the
@@ -972,13 +973,12 @@ ordbetareg <- function(formula=NULL,
 #'
 #' @importFrom dplyr bind_rows mutate tibble slice as_tibble arrange group_by pull summarize %>% bind_cols
 #' @importFrom tidyr unchop
-#' @importFrom faux rnorm_multi
 #' @importFrom brms posterior_epred
 #' @export
 sim_ordbeta <- function(N=1000,k=5,
                         iter=1000,
                         cores=1,
-                        rho=.5,
+                        #rho=.5,
                         phi=1,
                         cutpoints=c(-1,1),
                         beta_coef=NULL,
@@ -1010,7 +1010,7 @@ sim_ordbeta <- function(N=1000,k=5,
 
     tibble(N=rep(N[n],iter),
            k=k,
-           rho=rho,
+           #rho=rho,
            phi=phi,
            cutpoints1=cutpoints[1],
            cutpoints2=cutpoints[2],
@@ -1020,7 +1020,7 @@ sim_ordbeta <- function(N=1000,k=5,
   }) %>% bind_rows
 
 
-  print(paste0("Iterating for ", nrow(simul_data), " simulations."))
+  message(paste0("Iterating for ", nrow(simul_data), " simulations."))
 
   # marginal effects calc
 
@@ -1032,7 +1032,7 @@ sim_ordbeta <- function(N=1000,k=5,
 
   # fit a template model
 
-  print("Compiling model for re-use.")
+  message("Compiling model for re-use.")
 
   X_temp <- matrix(rep(1, k), ncol=k)
   colnames(X_temp) <- paste0(rep("Var",k),1:k)
@@ -1061,9 +1061,9 @@ sim_ordbeta <- function(N=1000,k=5,
     # need to create X
 
     if(k>1) {
-
-      X <- rnorm_multi(n=N,vars=this_data$k,r=this_data$rho,as.matrix=T)
-
+      # remove while it is off CRAN
+      #X <- rnorm_multi(n=N,vars=this_data$k,r=this_data$rho,as.matrix=T)
+      X <- matrix(rnorm(n=N*k),ncol=k)
     } else {
 
       X <- matrix(rnorm(n=N),ncol=1)
@@ -1107,7 +1107,7 @@ sim_ordbeta <- function(N=1000,k=5,
 
     out_beta <- rbeta(N,plogis(mu1) * phi, (1 - plogis(mu1)) * phi)
 
-    print(paste0("Now on iteration ",i))
+    message(paste0("Now on iteration ",i))
 
     # now determine which one we get for each observation
     outcomes <- sapply(1:N, function(i) {
@@ -1182,7 +1182,7 @@ sim_ordbeta <- function(N=1000,k=5,
 
     if('try-error' %in% class(fit_model)) {
 
-      print(paste0("Estimation failed for row ",i,"\n"))
+      message(paste0("Estimation failed for row ",i,"\n"))
 
       this_data$status <- "estimation_failure"
 
@@ -1194,7 +1194,7 @@ sim_ordbeta <- function(N=1000,k=5,
 
     if('try-error' %in% class(yrep_ord)) {
 
-      print(paste0("Posterior prediction failed for row ",i,"\n"))
+      message(paste0("Posterior prediction failed for row ",i,"\n"))
 
       this_data$status <- "posterior_prediction_failure"
 

@@ -54,6 +54,7 @@
 #' @importFrom dplyr select
 #' @importFrom utils packageVersion
 #' @importFrom gganimate transition_time ease_aes
+#' @importFrom transformr poly_star
 pp_check_ordbeta <- function(model=NULL,
                              type="both",
                              ndraws=10,
@@ -83,6 +84,8 @@ pp_check_ordbeta <- function(model=NULL,
       outcome_label <- names(model$data)[1]
 
     }
+
+    this_star <- poly_star()
 
     if(reverse_bounds) {
 
@@ -156,20 +159,27 @@ pp_check_ordbeta <- function(model=NULL,
                                                              ')'),
                                  round(up_bound,3))))
 
-          true_data_bar <- tibble(type=c(round(l_bound,3),
+          true_data_bar <- lapply(unique(group), function(g) {
+
+                        tibble(type=c(round(l_bound,3),
                                          round(up_bound,3),
                                          paste0('(',round(l_bound,3),
                                                                  ',',round(up_bound,3),
                                                                  ')')),
-                                  true=c(sum(outcome==l_bound,na.rm=T),
-                                         sum(outcome==up_bound,na.rm=T),
-                                         sum(outcome>l_bound & outcome<up_bound,na.rm=T))) %>%
+                                  true=c(sum(outcome[group==g]==l_bound,na.rm=T),
+                                         sum(outcome[group==g]==up_bound,na.rm=T),
+                                         sum(outcome[group==g]>l_bound & outcome[group==g]<up_bound,na.rm=T))) %>%
                                   mutate(type=factor(type,
                                                      levels=c(round(l_bound,3),
                                                               paste0('(',round(l_bound,3),
                                                                      ',',round(up_bound,3),
                                                                      ')'),
-                                                              round(up_bound,3))))
+                                                              round(up_bound,3))),
+                                         group=g)
+
+                            }) %>% bind_rows
+
+
 
           bar_plot <- ggplot(plot_data_bar,
                              aes(x=type,y=var)) +

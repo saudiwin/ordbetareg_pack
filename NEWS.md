@@ -1,3 +1,12 @@
+# ordbetareg v0.7.1
+
+- Removed dependency on `faux` as `faux` was taken off CRAN. This also means the 
+`sim_ordbeta` function cannot generate correlated covariates.
+- Fixed a bug with the `transform` option to the `slopes` function in `marginaleffects`
+in the vignette.
+- `marginaleffects` now supports standard errors for ordered beta regression models
+ in glmmTMB, so vignette was updated to reflect this.
+
 # ordbetareg v0.7.0
 
 - Allow intercepts to receive separate priors from main effects (permitting zero-ing out intercepts).

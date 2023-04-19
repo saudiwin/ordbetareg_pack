@@ -19,6 +19,9 @@ length is greater than 1, should be of length \code{n}.}
 \item{cutpoints}{A vector of two numeric values for the cutpoints. Second value should
 be strictly greater than the first value.}
 }
+\value{
+A vector of length \code{n} of variates from the ordered beta distribution.
+}
 \description{
 This function will generate ordered beta random variates given
 values for the mean (\code{mu}), dispersion (\code{phi}) and cutpoints
