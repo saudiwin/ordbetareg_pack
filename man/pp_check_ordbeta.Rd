@@ -13,7 +13,8 @@ pp_check_ordbeta(
   new_theme = NULL,
   outcome_label = NULL,
   animate = FALSE,
-  reverse_bounds = TRUE
+  reverse_bounds = TRUE,
+  facet_scales = "fixed"
 )
 }
 \arguments{
@@ -43,6 +44,12 @@ distributions (defaults to FALSE).}
 
 \item{reverse_bounds}{Whether to plot data using the original bounds in the data
 (i.e. not 0 and 1).}
+
+\item{facet_scales}{The option passed on to the \code{facet_wrap} function in
+\code{ggplot2} for the type of scale for facetting if passing a variable for
+\code{group}. Defaults to \code{"fixed"} scales but can be set to \code{"free_y"} to allow
+probability density/bar count scales to vary or \code{"free"} to allow both x
+and y axes to vary (i.e., also outcome axis ticks).}
 }
 \value{
 If "both", prints both plots and returns a list of both plots as

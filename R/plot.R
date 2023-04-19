@@ -26,6 +26,11 @@
 #' distributions (defaults to FALSE).
 #' @param reverse_bounds Whether to plot data using the original bounds in the data
 #' (i.e. not 0 and 1).
+#' @param facet_scales The option passed on to the `facet_wrap` function in
+#'  `ggplot2` for the type of scale for facetting if passing a variable for
+#'  `group`. Defaults to `"fixed"` scales but can be set to `"free_y"` to allow
+#'  probability density/bar count scales to vary or `"free"` to allow both x
+#'  and y axes to vary (i.e., also outcome axis ticks).
 #' @return If "both", prints both plots and returns a list of both plots as
 #' `ggplot2` objects. Otherwise, prints and returnst the specific plot
 #' as a `ggplot2` object.
@@ -63,7 +68,8 @@ pp_check_ordbeta <- function(model=NULL,
                              new_theme=NULL,
                              outcome_label=NULL,
                              animate=FALSE,
-                             reverse_bounds=TRUE) {
+                             reverse_bounds=TRUE,
+                             facet_scales="fixed") {
 
     #define globals
 
@@ -196,7 +202,8 @@ pp_check_ordbeta <- function(model=NULL,
 
           if(length(unique(plot_data_bar$group))>1) {
 
-            bar_plot <- bar_plot + facet_wrap(~group)
+            bar_plot <- bar_plot + facet_wrap(~group,
+                                              scales=facet_scales)
           }
 
 
@@ -251,7 +258,12 @@ pp_check_ordbeta <- function(model=NULL,
 
       }) %>% bind_rows
 
-      true_data <- tibble(true=outcome[!(outcome %in% c(l_bound,up_bound))])
+      true_data <- lapply(unique(group), function(g) {
+
+        tibble(true=outcome[!(outcome %in% c(l_bound,up_bound)) & group==g]) %>%
+          mutate(group=g)
+
+      }) %>% bind_rows
 
       if(animate) {
 
@@ -281,6 +293,14 @@ pp_check_ordbeta <- function(model=NULL,
                   subtitle=paste0("Outcome: ",outcome_label))
 
 
+      }
+
+      # add in facets if groups>1
+
+      if(length(unique(plot_data_bar$group))>1) {
+
+        cont_plot <- cont_plot + facet_wrap(~group,
+                                            scales=facet_scales)
       }
 
       cont_plot <- cont_plot + geom_density(data=true_data,
