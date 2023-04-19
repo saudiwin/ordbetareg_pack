@@ -32,6 +32,7 @@ Imports:
 Suggests: 
     rmarkdown,
     knitr,
+    gt,
     modelsummary,
     marginaleffects (>= 0.10.0),
     haven,
