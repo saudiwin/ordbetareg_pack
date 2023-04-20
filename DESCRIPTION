@@ -1,7 +1,7 @@
 Package: ordbetareg
 Type: Package
 Title: Ordered Beta Regression Models with 'brms'
-Version: 0.7.1
+Version: 0.7.2
 Authors@R: person(
   "Robert", "Kubinec",
   email = "rmk7@nyu.edu",
