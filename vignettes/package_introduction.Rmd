@@ -65,7 +65,7 @@ If you use the model in a paper, please cite it as:
 ```{r runmod}
 
 # whether to run models from scratch
-run_model <- F
+run_model <- T
 
 ```
 
@@ -402,7 +402,7 @@ As I explain in the paper, one of the main advantages of using a Beta regression
 
 The one change we need to make to fit this model is to add a formula predicting `phi` in the code below. Because we now have two formulas--one for the mean and one for dispersion--I use the `bf` function to indicate these two sub-models. I also need to specify `phi_reg` to be TRUE because some of the priors will change. 
 
-Because there is no need to model the mean, I leave the first formula as `therm ~ 1` with the 1 representing only an intercept, not a covariate. I then specify a separate model for `phi` with an interaction between `age` and `sex` to see if these covariates are associated with dispersion.
+Because there is no need to model the mean, I leave the first formula as `therm ~ 1` with the 1 representing only an intercept, not a covariate. I then specify a separate model for `phi` with an interaction between `age` and `sex` to see if these covariates are associated with dispersion. I set `phi_reg` to `"only"` because I am only including covariates for predicting `phi` instead of also `therm` (in which case I would want to set the option to `"both"`).
 
 
 ```{r run_brms_phi}
@@ -411,7 +411,7 @@ if(run_model) {
   
   ord_fit_phi <- ordbetareg(bf(therm ~ 1, 
                                phi ~ age + sex),
-                            phi_reg = T,
+                            phi_reg = "only",
                             data=model_data,
                             cores=2,chains=2,iter=500,
                             refresh=0)

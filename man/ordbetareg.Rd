@@ -23,7 +23,7 @@ ordbetareg(
   phi_intercept_prior_SD = NULL,
   extra_prior = NULL,
   init = "0",
-  offset = 0,
+  make_stancode = FALSE,
   ...
 )
 }
@@ -64,7 +64,11 @@ logit scale.}
 for the intercept. By default is NULL, which means the intercept
 receives the same prior as \code{coef_prior_mean}. To zero out the
 intercept, set this parameter to 0 and \code{coef_prior_SD} to a
-very small number (0.01 or smaller).}
+very small number (0.01 or smaller). NOTE: the default intercept
+in \code{brms} is centered (mean-subtracted) by default. To use a
+traditional intercept, either add \code{0 + Intercept} to the
+formula or specify \code{center=FALSE} in the \code{bf} formula function for
+\code{brms}. See \code{\link[brms:brmsformula]{brms::brmsformula()}} for more info.}
 
 \item{intercept_prior_SD}{The SD of the Normal distribution prior
 for the intercept. By default is NULL, which means the intercept
@@ -127,8 +131,8 @@ with an experimental feature of \code{brms}, set this to \code{"random"} to get
 more robust starting values (just be sure to scale the covariates so they are
 not too large in absolute size).}
 
-\item{offset}{Specify a hard-coded offset for the model. Default is 0
-(no offset). Also consider putting an informative prior on the intercept instead.}
+\item{make_stancode}{If \code{TRUE}, will pass back the Stan code for the
+model as a character vector rather than fitting the model.}
 
 \item{...}{All other arguments passed on to the \code{brm} function}
 }
@@ -169,6 +173,22 @@ to the \code{extra_prior} argument.
 This function will also automatically normalize the outcome so that it
 lies in the \[0,1\] interval, as required by beta regression. For furthur
 information, see the documentation for the \link{normalize} function.
+
+Priors can be set on a variety of coefficients in the model, see
+the description of parameters \code{coef_prior_mean} and \code{intercept_prior_mean},
+in addition to setting a custom prior with the \code{extra_prior} option.
+When setting priors on intercepts, it is important to note that
+by default, all intercepts in brms are centered (the means are
+subtracted from the data). As a result, a prior set on the default
+intercept will have a different interpretation than a traditional
+intercept (i.e. the value of the outcome when the covariates are
+all zero). To change this setting, use the \code{\link[brms:brmsformula]{brms::bf()}} function
+as a wrapper around the formula with the option \code{center=FALSE} to
+set priors on a traditional non-centered intercept.
+
+Note that while \code{brms} also supports adding \code{0 + Intercept} to the
+formula to address this issue, \code{ordbetareg} does not support this
+syntax. Instead, use \code{center=FALSE} as an option to \code{\link[brms:brmsformula]{brms::bf()}}.
 
 To learn more about how the package works, see the vignette by using
 the command \code{browseVignettes(package='ordbetareg')}.
