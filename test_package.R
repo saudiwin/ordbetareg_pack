@@ -1,4 +1,5 @@
 library(ordbetareg)
+library(tidyverse)
 
 data("pew")
 
@@ -45,6 +46,14 @@ ord_fit_two_mods_mi <- ordbetareg(formula=bf(THERMO_THERMBA_W28~ education) +
                                use_brm_multiple = T,
                                cores=2,chains=2,sample_prior="only",
                                backend="cmdstanr")
+
+ord_fit_phireg <- ordbetareg(formula=bf(THERMO_THERMBA_W28~ 1,
+                                        phi ~ (1|education)),
+                             phi_reg = "intercepts",
+                             extra_prior = set_prior("normal(0,2)",class="sd",dpar="phi"),
+                              data=model_data,
+                              cores=2,chains=2,sample_prior="only",
+                              backend="cmdstanr")
 
 # check with cmdstnar
 

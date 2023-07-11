@@ -44,7 +44,10 @@ the outcome/response}
 the dispersion  parameter, phi, and/or for the response. If you are
 including models for both, pass option 'both'. If you only have an
 intercept for the outcome (i.e. a 1 in place of covariates), pass 'only'.
-If no model for phi, the default, pass 'none'.}
+If you only have intercepts for phi (such as a varying intercepts/random effects)
+model, pass the value "intercepts". To set priors on these intercepts,
+use the \code{extra-prior} option with the \link[brms:set_prior]{brms::set_prior} function (class="sd").
+If no model of any kind for phi, the default, pass 'none'.}
 
 \item{use_brm_multiple}{(T/F) Whether the model should use
 \link[brms:brm_multiple]{brms::brm_multiple} for multiple

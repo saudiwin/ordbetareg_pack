@@ -59,7 +59,10 @@
 #'   the dispersion  parameter, phi, and/or for the response. If you are
 #'   including models for both, pass option 'both'. If you only have an
 #'   intercept for the outcome (i.e. a 1 in place of covariates), pass 'only'.
-#'   If no model for phi, the default, pass 'none'.
+#'   If you only have intercepts for phi (such as a varying intercepts/random effects)
+#'   model, pass the value "intercepts". To set priors on these intercepts,
+#'   use the `extra-prior` option with the [brms::set_prior] function (class="sd").
+#'   If no model of any kind for phi, the default, pass 'none'.
 #' @param coef_prior_mean The mean of the Normal distribution prior on the
 #'   regression coefficients (for predicting the mean of the response).
 #'   Default is 0.
@@ -813,7 +816,6 @@ ordbetareg <- function(formula=NULL,
   # Feel free to add any other priors / change the priors on b,
   # which represent regression coefficients on the logit
   # scale
-
 
 # Set priors --------------------------------------------------------------
 
