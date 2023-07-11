@@ -291,7 +291,7 @@ glmm_tmb_fit <- glmmTMB(therm_norm ~ approval + (1|region),
 # model coefficients
 # modelsummary(glmm_tmb_fit)
 # marginal effects in scale of the outcome
-avg_slopes(glmm_tmb_fit)
+avg_slopes(glmm_tmb_fit, vcov = FALSE)
 
 ```
 
