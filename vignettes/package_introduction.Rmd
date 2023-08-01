@@ -21,8 +21,7 @@ library(brms)
 library(tidyr)
 library(stringr)
 library(Hmisc)
-library(glmmTMB)
-#library(modelsummary)
+library(modelsummary)
 library(marginaleffects)
 
 
@@ -48,13 +47,9 @@ set.seed(628871)
 
 # Overview
 
-**Please note: Due to CRAN issues with the `kableExtra` package, I am not able to run the `modelsummary` code in the vignette, and for that reason it is commented out. However, this code works fine on all normal machines and you should feel free to uncomment it and use it with `ordbetareg` models.**
-
 The ordered beta regression model is designed explicitly for data with upper and lower bounds, such as survey slider scales, dose/response relationships, and anything that can be considered a proportion or a percentage. This type of data cannot be fit with the standard beta regression model because the beta distribution does not allow for any observations at the bounds, such as a percentage/proportion of 0% or 100%. The ordered beta regression model solves this problem by combining the beta distribution with an ordinal distribution over continuous and discrete, or degenerate, observations at the bounds. It is an efficient model that produces intelligible estimates that also respect the bounds of the dependent variable. For more information, I refer you to my [paper on the model](https://www.cambridge.org/core/journals/political-analysis/article/ordered-beta-regression-a-parsimonious-wellfitting-model-for-continuous-data-with-lower-and-upper-bounds/89F4141DA16D4FC217809B5EB45EEE83) for more details (also there is an ungated version available [here](https://osf.io/preprints/socarxiv/2sx6y/)).
 
 This notebook contains instructions for running the ordered beta regression model in the R package `ordbetareg`. `ordbetareg` is a front-end to `brms`, a very powerful regression modeling package based on the [Stan Hamiltonian Markov Chain Monte Carlo](https://mc-stan.org/) sampler. I only show in this vignette a small part of the features which are available via `brms`, and I refer the user to the [copious documentation describing the features of the brms package](https://paul-buerkner.github.io/brms/). Suffice it to say that most kinds of regression models can be fit with the software, including hierarchical, dynamic, nonlinear and multivariate models (or all of the above in combination). The `ordbetareg` package allows for all of these features to be used with the ordered regression model distribution by adding this distribution to `brms`.
-
-In addition, I show in this vignette how to fit the package compares to fitting the ordered beta regression model with the R package [`glmmTMB`](https://glmmtmb.github.io/glmmTMB/). `glmmTMB` uses maximum likelihood and related methods, so it is much faster than the Bayesian inference employed by `ordbetareg`, although it has less flexibility and fewer options in terms of model possibilities.
 
 The reproducible Rmarkdown file this vignette is compiled from can be accessed from [the package Github site](https://github.com/saudiwin/ordbetareg_pack/blob/master/vignettes/package_introduction.Rmd).
 
@@ -65,7 +60,7 @@ If you use the model in a paper, please cite it as:
 ```{r runmod}
 
 # whether to run models from scratch
-run_model <- T
+run_model <- F
 
 ```
 
@@ -229,22 +224,17 @@ plot2$continuous
 
 We can see the coefficients from the model in table form using the `modelsummary` package, which has support for `brms` models. We'll specify only confidence intervals as other frequentist statistics have no Bayesian analogue (i.e. p-values). We'll also specify only the main effects of the ordinal predictors, and give them more informative names. 
 
-**Please note: `modelsummary` code is commented out due to an issue with the CRAN server. Please uncomment and use it as the package/code works fine.**
-
 ```{r coef_plot}
 
-#library(modelsummary)
+library(modelsummary)
 
-# code fails on CRAN, but works everywhere else
+modelsummary(ord_fit_mean,statistic = "conf.int",
+             metrics = "RMSE",
+             coef_map=c("b_Intercept"="Intercept",
+                        "bsp_moeducation"="Education",
+                        "bsp_moincome"="Income",
+                        "bsp_moeducation:moincome"="EducationXIncome"))
 
-# modelsummary(ord_fit_mean,statistic = "conf.int",
-#              metrics = "RMSE",
-#              coef_map=c("b_Intercept"="Intercept",
-#                         "bsp_moeducation"="Education",
-#                         "bsp_moincome"="Income",
-#                         "bsp_moeducation:moincome"="EducationXIncome"))
-
-knitr::include_graphics("model_sum.png")
 ```
 
 `modelsummary` tables have many more options, including output to both html and latex formats. I refer the reader to the [package documentation](https://vincentarelbundock.github.io/modelsummary/articles/modelsummary.html) for more info.
@@ -269,32 +259,6 @@ avg_slopes(ord_fit_mean, variables="education") %>%
 We can see that we have separate marginal effects for each level of education due to modeling it as an ordinal predictor. At present the `avg_slopes()` function cannot calculate a single effect, though that is possible manually. As we can see with the raw coefficient in the table above, the marginal effects are all positive, though the magnitude varies across different levels of education.
 
 Note as well that the `slopes` function can calculate unit-level (row-wise) estimates of the predictors on the outcome (see `marginaleffects` documentation for more info).
-
-## Comparison with `glmmTMB`
-
-As mentioned, `glmmTMB` added support in 2022 for the ordered beta regression model. Unlike `ordbetareg`, `glmmTMB` requires the outcome to be normalized to 0 and 1 prior to usage. Also, at present `glmmTMB` requires priors on the cutpoints to be specified separately (future version of the package should not require this). Because `glmmTMB` does not have as many features as `brms`, it cannot fit all model options such as the monotonic predictors for ordinal variables. However, it does have strong support for multilevel models and random effects. The following code normalizes the outcome and then fits and summarizes a `glmmTMB` model:
-  
-```{r fit_tmb}
-
-# need to normalize first to 0 and 1
-
-model_data$therm_norm <- (model_data$therm - min(model_data$therm))/(max(model_data$therm) - min(model_data$therm))
-
-# fit requires specification of priors on cutpoints (labeled as psi)
-# will not be required in future versions of glmmTMB
-
-glmm_tmb_fit <- glmmTMB(therm_norm ~ approval + (1|region),
-                        data=model_data,
-                        family=ordbeta(),
-                        start=list(psi = c(-1, 1)))
-
-# model coefficients
-# modelsummary(glmm_tmb_fit)
-# marginal effects in scale of the outcome
-avg_slopes(glmm_tmb_fit)
-
-```
-
 
 # Multiple Imputation
 
@@ -338,7 +302,7 @@ if(run_model) {
 # imputation uncertainty included in all results/analyses
 # marginal effects, though, only incorporate one imputed dataset
 
-#modelsummary(fit_imputed,statistic = 'conf.int')
+modelsummary(fit_imputed,statistic = 'conf.int')
 avg_slopes(fit_imputed)
 ```
 
@@ -378,7 +342,7 @@ if(run_model) {
   
 }
 
-#modelsummary(fit_multivariate,statistic = "conf.int")
+modelsummary(fit_multivariate,statistic = "conf.int")
 
 # need to calculate each sub-model's marginal effects separately
 

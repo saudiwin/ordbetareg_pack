@@ -1,3 +1,7 @@
+# ordbetareg v0.7.2
+
+- `glmmTMB` no longer has standard errors from the `marginaleffects` package. Updated vignette to reflect this.
+
 # ordbetareg v0.7.1
 
 - Removed dependency on `faux` as `faux` was taken off CRAN. This also means the 
