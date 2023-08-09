@@ -42,6 +42,5 @@ Suggests:
     ggthemes,
     glmmTMB,
     mice,
-    bayestestR,
-    kableExtra
+    bayestestR
 VignetteBuilder: knitr
