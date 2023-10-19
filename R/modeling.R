@@ -569,12 +569,25 @@ ordbetareg <- function(formula=NULL,
 
 
     class(out_obj) <- c(class(out_obj),"ordbetareg")
+    
+    if(length(dv)==1) {
 
-    out_obj$upper_bound <- attr(data[[dv_pos]],'upper_bound')
-    out_obj$lower_bound <- attr(data[[dv_pos]],'lower_bound')
+      out_obj$upper_bound <- attr(data[[dv_pos]],'upper_bound')
+      out_obj$lower_bound <- attr(data[[dv_pos]],'lower_bound')
 
+    } else {
 
+      # multivariate adjustment necessary
+      
+      out_obj$upper_bound <- lapply(dv_pos, function(c) {
+        return(attr(data[[c]], 'upper_bound'))
+      })
 
+      out_obj$lower_bound <- lapply(dv_pos, function(c) {
+        return(attr(data[[c]], 'lower_bound'))
+      })
+
+    }
 
     return(out_obj)
 
