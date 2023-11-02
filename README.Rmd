@@ -7,6 +7,10 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r logo,echo=FALSE,out.height="100px",out.width="100px"}
+knitr::include_graphics("ordbetareg_transparent_v2.png")
+```
+
 This is the repository for the `ordbetareg` package, which can be used to fit the ordered beta regression model as specified in Kubinec (2022) (see paper https://osf.io/preprints/socarxiv/2sx6y/). This package is [on CRAN](https://cran.r-project.org/web/packages/ordbetareg/index.html), but to use the development version, use this install command (requires the `remotes` package to be installed first):
 
 ```
