@@ -40,7 +40,8 @@ rows as the data that is used to broduce grouped
 (default is the name of the response variable in the data frame).}
 
 \item{animate}{Whether to animate each posterior draw for continuous
-distributions (defaults to FALSE).}
+distributions (defaults to FALSE). Requires installation of the
+\code{gganimate} and \code{transformr} R packages.}
 
 \item{reverse_bounds}{Whether to plot data using the original bounds in the data
 (i.e. not 0 and 1).}

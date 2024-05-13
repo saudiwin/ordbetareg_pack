@@ -23,7 +23,8 @@
 #' @param outcome_label A character value that will replace the name of the outcome in the plot
 #' (default is the name of the response variable in the data frame).
 #' @param animate Whether to animate each posterior draw for continuous
-#' distributions (defaults to FALSE).
+#' distributions (defaults to FALSE). Requires installation of the
+#' `gganimate` and `transformr` R packages.
 #' @param reverse_bounds Whether to plot data using the original bounds in the data
 #' (i.e. not 0 and 1).
 #' @param facet_scales The option passed on to the `facet_wrap` function in
@@ -58,8 +59,6 @@
 #' @import ggplot2
 #' @importFrom dplyr select
 #' @importFrom utils packageVersion
-#' @importFrom gganimate transition_time ease_aes
-#' @importFrom transformr poly_star
 pp_check_ordbeta <- function(model=NULL,
                              type="both",
                              ndraws=10,
