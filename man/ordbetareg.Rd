@@ -225,10 +225,16 @@ data("ord_fit_mean")
   \donttest{
   # fit the actual model
 
+  if(.Platform$OS.type!="windows") {
+
     ord_fit_mean <- ordbetareg(formula=therm ~ education + income +
-    (1|region),
-    data=model_data,
-    cores=2,chains=2)
+      (1|region),
+      data=model_data,
+      cores=2,chains=2)
+
+  }
+
+
   }
 
 # access values of the coefficients

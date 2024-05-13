@@ -189,7 +189,7 @@ pew %>%
 
 The plot shows that the model sees significant heterogeneity between the discrete responses at the bounds and the continuous responses in the plot. 
 
-The best way to visualize model fit is to plot the full predictive distribution relative to the original outcome. Because ordered beta regression is a mixed discrete/continuous model, a separate plotting function, `pp_check_ordbetareg`, is included that accurately handles the unique features of this distribution. This function returns a list with two plots, `discrete` and `continuous`, which can either be printed and plotted or further modified as `ggplot2` objects. 
+The best way to visualize model fit is to plot the full predictive distribution relative to the original outcome. Because ordered beta regression is a mixed discrete/continuous model, a separate plotting function, `pp_check_ordbeta`, is included that accurately handles the unique features of this distribution. This function returns a list with two plots, `discrete` and `continuous`, which can either be printed and plotted or further modified as `ggplot2` objects. 
 
 The discrete plot, which is a bar graph, shows that the posterior distribution accurately captures the number of different types of responses (discrete or continuous) in the data. For the continuous plot, shown as a density plot with one line per posterior draw, the model can't capture all of the modality in the distribution -- there are effectively four separate modes -- but it is reasonably accurate over the middle responses and the responses near the bounds.
 
@@ -207,6 +207,7 @@ plots$discrete
 plots$continuous
 
 ```
+The `pp_check_ordbeta` function can also show each posterior draw one at a time in an animated plot if the `animate` option is set to TRUE. This option requires the installation of the additional packages `gganimate` and `transformr`. 
 
 ## Coefficients and Marginal Effects Reporting
 

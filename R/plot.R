@@ -91,7 +91,7 @@ pp_check_ordbeta <- function(model=NULL,
 
     }
 
-    this_star <- poly_star()
+    this_star <- transformr::poly_star()
 
     if(reverse_bounds) {
 
@@ -267,6 +267,14 @@ pp_check_ordbeta <- function(model=NULL,
 
       if(animate) {
 
+        if (!requireNamespace("gganimate", quietly = TRUE)) {
+          stop("Please install the `gganimate` package to use the animate option in this plot.", call. = FALSE)
+        }
+
+        if (!requireNamespace("transformr", quietly = TRUE)) {
+          stop("Please install the `transformr` package to use the animate option in this plot.", call. = FALSE)
+        }
+
 
         cont_plot <- plot_data_dens %>%
           ggplot(aes(x=pred)) +
@@ -274,8 +282,8 @@ pp_check_ordbeta <- function(model=NULL,
           theme_minimal() +
           labs(y="Probability Density",x=paste0("Continuous values of ",outcome_label),
                caption="Each black line is a draw from the posterior distribution.\nData distribution represented by gray line.") +
-          transition_time(draw) +
-          ease_aes('elastic-in-out') +
+          gganimate::transition_time(draw) +
+          gganimate::ease_aes('elastic-in-out') +
           ggtitle(paste0("Posterior Predictions for Data Bounded from ",
                          round(l_bound,3), " to ", round(up_bound,3)),
                   subtitle=paste0("Outcome: ",outcome_label))

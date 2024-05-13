@@ -157,10 +157,16 @@
 #'   \donttest{
 #'   # fit the actual model
 #'
+#'   if(.Platform$OS.type!="windows") {
+#'
 #'     ord_fit_mean <- ordbetareg(formula=therm ~ education + income +
-#'     (1|region),
-#'     data=model_data,
-#'     cores=2,chains=2)
+#'       (1|region),
+#'       data=model_data,
+#'       cores=2,chains=2)
+#'
+#'   }
+#'
+#'
 #'   }
 #'
 #' # access values of the coefficients
@@ -1009,12 +1015,17 @@ ordbetareg <- function(formula=NULL,
 #'
 #' # will take a while to run this
 #' \donttest{
+#'
+#'   if(.Platform$OS.type!="windows") {
+#'
 #'     sim_data <- sim_ordbeta(N=c(250,750),
 #'     k=1,
 #'     beta_coef = .5,
 #'     iter=5,cores=2,
 #'     beta_type="binary",
 #'     treat_assign=0.3)
+#'
+#'     }
 #'
 #' }
 #'
