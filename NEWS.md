@@ -1,3 +1,8 @@
+# ordbetareg v0.7.3.1
+
+- removed `transformr` from imports because of many dependencies
+- fixed bug if the intercept was specified and centered due to `brms` code change
+
 # ordbetareg v0.7.2
 
 - `glmmTMB` no longer has standard errors from the `marginaleffects` package. Updated vignette to reflect this.

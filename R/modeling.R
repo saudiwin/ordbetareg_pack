@@ -894,7 +894,7 @@ ordbetareg <- function(formula=NULL,
 
     # different priors with/without centering
 
-    if(attr(formula$formula, "center")) {
+    if(is.null(attr(formula$formula, "center")) || attr(formula$formula, "center")) {
 
       priors <- priors + set_prior(paste0("normal(",intercept_prior[1],",",intercept_prior[2],")"),
                                    class="Intercept")
