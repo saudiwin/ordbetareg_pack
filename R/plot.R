@@ -9,6 +9,10 @@
 #' relative to the data.
 #'
 #' @param model A fitted [ordbetareg] model.
+#' @param dv If you fit a model with multiple DVs/responses,
+#' pass the name of the DV as a character value.
+#' Note: this must be the same as the name of the column
+#' in the data used to fit the model.
 #' @param type Default is "both" for creating both a
 #' discrete (bar) and continuous (density) plot. Can also be
 #' "discrete" for only the bar plot for discrete values (0/1) or
@@ -60,6 +64,7 @@
 #' @importFrom dplyr select
 #' @importFrom utils packageVersion
 pp_check_ordbeta <- function(model=NULL,
+                             dv=NULL,
                              type="both",
                              ndraws=10,
                              cores=NULL,
@@ -76,9 +81,25 @@ pp_check_ordbeta <- function(model=NULL,
 
     # need to get posterior predictive distribution
 
-    full_dist <- posterior_predict(model,ndraws=ndraws,cores=NULL)
+    if(!is.null(dv)) {
 
-    outcome <- model$data[[1]]
+      full_dist <- posterior_predict(model,ndraws=ndraws,cores=NULL,
+                                     resp=dv)
+    } else {
+
+      full_dist <- posterior_predict(model,ndraws=ndraws,cores=NULL)
+
+    }
+
+    if(!is.null(dv)) {
+
+      outcome <- model$data[[dv]]
+
+    } else {
+
+      outcome <- model$data[[1]]
+
+    }
 
     if(!is.null(outcome_label)) {
 
@@ -86,7 +107,14 @@ pp_check_ordbeta <- function(model=NULL,
 
     } else {
 
-      outcome_label <- names(model$data)[1]
+      if(!is.null(dv)) {
+
+        outcome_label <- dv
+
+      } else {
+
+        outcome_label <- names(model$data)[1]
+      }
 
     }
 
@@ -96,8 +124,21 @@ pp_check_ordbeta <- function(model=NULL,
 
         # revert to original scale
 
-        l_bound <- model$lower_bound
-        up_bound <- model$upper_bound
+        if(!is.null(dv)) {
+
+          l_bound <- model$lower_bound[[dv]]
+          up_bound <- model$upper_bound[[dv]]
+
+        } else {
+
+
+          l_bound <- model$lower_bound
+          up_bound <- model$upper_bound
+
+
+        }
+
+
 
 
         full_dist <- apply(full_dist, 1, function(c) {
@@ -213,15 +254,33 @@ pp_check_ordbeta <- function(model=NULL,
     if(type %in% c("both","continuous")) {
 
       # need to change the posterior predict function to get the argument from ...
+      if(!is.null(dv)) {
 
-      cont_dist <- posterior_predict(model,ndraws=ndraws,cores=NULL,ntrys=100)
+        cont_dist <- posterior_predict(model,ndraws=ndraws,cores=NULL,ntrys=100,
+                                       resp=dv)
+      } else {
+
+        cont_dist <- posterior_predict(model,ndraws=ndraws,cores=NULL,ntrys=100)
+      }
+
 
       if(reverse_bounds) {
 
         # revert to original scale
 
-        l_bound <- model$lower_bound
-        up_bound <- model$upper_bound
+        if(!is.null(dv)) {
+
+          l_bound <- model$lower_bound[[dv]]
+          up_bound <- model$upper_bound[[dv]]
+
+        } else {
+
+
+          l_bound <- model$lower_bound
+          up_bound <- model$upper_bound
+
+
+        }
 
 
         cont_dist <- apply(cont_dist, 1, function(c) {
