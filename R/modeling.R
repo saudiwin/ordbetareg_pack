@@ -131,7 +131,7 @@
 #'   with an experimental feature of `brms`, set this to `"random"` to get
 #'   more robust starting values (just be sure to scale the covariates so they are
 #'   not too large in absolute size).
-#' @param make_stancode If `TRUE`, will pass back the Stan code for the
+#' @param return_stancode If `TRUE`, will pass back the *only* the Stan code for the
 #' model as a character vector rather than fitting the model.
 #' @param ... All other arguments passed on to the `brm` function
 #' @return A `brms` object fitted with the ordered beta regression distribution.
@@ -173,7 +173,7 @@
 #'
 #' summary(ord_fit_mean)
 #' @importFrom brms brm brm_multiple
-#' @importFrom brms bf
+#' @importFrom brms bf make_stancode
 #' @export
 ordbetareg <- function(formula=NULL,
                        data=NULL,
@@ -192,7 +192,7 @@ ordbetareg <- function(formula=NULL,
                        phi_intercept_prior_SD=NULL,
                        extra_prior=NULL,
                        init ="0",
-                       make_stancode=FALSE,
+                       return_stancode=FALSE,
                        ...) {
 
   if(is.null(formula)) {
@@ -203,7 +203,7 @@ ordbetareg <- function(formula=NULL,
 
   # determine whether to fit the model
 
-  if(make_stancode) {
+  if(return_stancode) {
 
     fit_func <- make_stancode
 
@@ -572,7 +572,9 @@ ordbetareg <- function(formula=NULL,
 
   }
 
+    # just return code
 
+    if(return_stancode) return(out_obj)
 
     class(out_obj) <- c(class(out_obj),"ordbetareg")
 

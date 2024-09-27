@@ -2,6 +2,7 @@
 % Please edit documentation in R/modeling.R, R/package_info.R
 \docType{package}
 \name{ordbetareg}
+\alias{ordbetareg-package}
 \alias{ordbetareg}
 \title{Fit Ordered Beta Regression Model}
 \usage{
@@ -23,7 +24,7 @@ ordbetareg(
   phi_intercept_prior_SD = NULL,
   extra_prior = NULL,
   init = "0",
-  make_stancode = FALSE,
+  return_stancode = FALSE,
   ...
 )
 }
@@ -134,7 +135,7 @@ with an experimental feature of \code{brms}, set this to \code{"random"} to get
 more robust starting values (just be sure to scale the covariates so they are
 not too large in absolute size).}
 
-\item{make_stancode}{If \code{TRUE}, will pass back the Stan code for the
+\item{return_stancode}{If \code{TRUE}, will pass back the \emph{only} the Stan code for the
 model as a character vector rather than fitting the model.}
 
 \item{...}{All other arguments passed on to the \code{brm} function}
@@ -240,4 +241,15 @@ data("ord_fit_mean")
 # access values of the coefficients
 
 summary(ord_fit_mean)
+}
+\seealso{
+Useful links:
+\itemize{
+  \item Report bugs at \url{https://github.com/saudiwin/ordbetareg_pack/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Robert Kubinec \email{rmk7@nyu.edu} (\href{https://orcid.org/0000-0001-6655-4119}{ORCID})
+
 }
