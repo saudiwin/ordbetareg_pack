@@ -2,6 +2,8 @@
 
 - removed `transformr` from imports because of many dependencies
 - fixed bug if the intercept was specified and centered due to `brms` code change
+- fixed bug that prevented the `make_stancode` option from working. changed that option 
+to `return_stancode`
 
 # ordbetareg v0.7.2
 
