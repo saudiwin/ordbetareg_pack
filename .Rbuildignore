@@ -8,6 +8,7 @@ test_package.R
 ^CRAN-SUBMISSION$
 ^cran-comments\.md$
 prop_modeling_version.R
+calc_pry1.R
 test
 test.stan
 test2.stan
