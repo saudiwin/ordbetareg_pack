@@ -9,9 +9,9 @@ library(tidyverse)
 
 # parameters to loop over and get power curves for
 
-treat_effects <- seq(0,1, by=0.1)
-num_subjects <- seq(10,20,by=1)
-num_measures_per_day <- seq(1,5,by=1)
+treat_effects <- seq(0,1, by=0.2)
+num_subjects <- seq(10,20,by=2)
+num_measures_per_day <- seq(2,5,by=1)
 num_days <- 10
 # measure of how much variance there is within-subject over time
 # equivalent to sd of random intercepts
@@ -39,8 +39,8 @@ names(all_params) <- c("treat_effects","num_subjects",
                        "phi")
 
 # number of sims per parameter combination
-
-sims <- 100
+# 100 would be a bit more conservative
+sims <- 10
 
 # parallel processing to make it run faster
 # set to just vanilla lapply if on Windows
@@ -125,7 +125,7 @@ over_params <- parallel::mclapply(1:nrow(all_params), function(i) {
     # power = p < threshold
 
     sim_res <- mutate(sim_res,
-                      treat_sig=as.numeric(treat_pvalue > p_threshold))
+                      treat_sig=as.numeric(treat_pvalue < p_threshold))
 
     return(sim_res)
 
@@ -139,7 +139,7 @@ over_params <- parallel::mclapply(1:nrow(all_params), function(i) {
 
 # estimate power by param combination
 
-power_est <- group_by(over_params, param_val,true_treat,
+power_est <- group_by(over_params, param_vals,true_treat,
                       true_phi,num_subjects, num_measures_per_day,
                       sd_within_subject,p_threshold) %>%
   summarize(power_est=mean(treat_sig))
@@ -151,7 +151,10 @@ power_est <- group_by(over_params, param_val,true_treat,
 library(ggplot2)
 
 power_est %>%
+  mutate(num_measures_per_day=factor(num_measures_per_day),
+         true_treat=paste0("Effect size: ",true_treat)) %>%
   ggplot(aes(y=power_est,
              x=num_subjects)) +
-  geom_line(aes(colour=true_treat)) +
-  facet_wrap(~num_measures_per_day)
+  geom_line(aes(linetype=num_measures_per_day,
+                group=num_measures_per_day)) +
+  facet_wrap(~true_treat)
