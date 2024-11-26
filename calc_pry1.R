@@ -48,7 +48,7 @@ return_pr_01 <- function(object) {
 
   # calculate pr_0 and pr_1
 
-  ord_pred <- group_by(ord_pred, .iteration) %>%
+  ord_pred <- group_by(ord_pred, .draw) %>%
                      mutate(pr_y_1=plogis(.linpred - cutone),
                             pr_y_0=1 - plogis(.linpred - cutzero))
 
