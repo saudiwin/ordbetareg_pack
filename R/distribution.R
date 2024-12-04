@@ -200,6 +200,11 @@ rordbeta <- function(n=100,
 
   })
 
+  # if we get underflow/overflow, assign the max/min based on double floating point precision
+
+  out_beta[out_beta==1] <- out_beta[out_beta==1] - .Machine$double.eps
+  out_beta[out_beta==0] <- out_beta[out_beta==0] + .Machine$double.eps
+
   # now combine binary (0/1) with proportion (beta)
 
   final_out <- sapply(1:n,function(i) {
