@@ -225,12 +225,21 @@ pp_check_ordbeta <- function(model=NULL,
 
                             }) %>% bind_rows
 
+          # define a simple function to calculate quantiles
 
+          collapse_func <- function(x) {
+
+
+            tibble(ymin=quantile(x, .05),
+                   ymax=quantile(x, .95),
+                   y=median(x))
+
+          }
 
           bar_plot <- ggplot(plot_data_bar,
                              aes(x=type,y=var)) +
             geom_col(data=true_data_bar, aes(y=true),width=.5,fill="gray") +
-            stat_summary(fun.data="median_hilow",geom = "pointrange") +
+            stat_summary(fun.data=collapse_func,geom = "pointrange") +
             labs(y="Observed and Estimated Counts",
                  x=paste0("No. of Discrete and Continuous Observations in ", outcome_label),
                  caption="Estimates are posterior medians with 5% and 95% high/low quantiles.\nCount of discrete values in data are represented by gray bars.") +
