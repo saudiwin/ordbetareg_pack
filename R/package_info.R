@@ -20,9 +20,8 @@ utils::globalVariables(c('filter','resp'))
 #' To cite the package, please cite the following paper:
 #'
 #' Kubinec, Robert. "Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds." **Political Analysis**. 2022.
-#' @docType package
-#' @name ordbetareg
-NULL
+#' @keywords internal
+"_PACKAGE"
 
 
 #' Pew American Trends Panel Wave 28
