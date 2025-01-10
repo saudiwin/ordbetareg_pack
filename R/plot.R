@@ -591,14 +591,14 @@ plot_heiss <- function(object,
 
   preds_local_text <- preds_local_plot %>%
     group_by(component, grouping_fac) %>%
-    summarize(median_prop = tibble(y=median(y),
+    summarize(median_prop = tibble(y_agg=median(y),
                                    ymin=quantile(y, lb),
                                    ymax=quantile(y, upb))) %>%
     unnest(median_prop) %>%
     group_by(grouping_fac) %>%
-    mutate(y_plot = (y / 2) + lag(cumsum(y), default = 0)) %>%
+    mutate(y_plot = (y_agg / 2) + lag(cumsum(y_agg), default = 0)) %>%
     mutate(y_plot = 1 - y_plot) %>%
-    mutate(prop_nice = label_percent(accuracy = 1)(y)) %>%
+    mutate(prop_nice = label_percent(accuracy = 1)(y_agg)) %>%
     mutate(prop_ci_nice = paste0(label_number(accuracy = 1, scale = 100)(ymin),
                                  "–",
                                  label_percent(accuracy = 1)(ymax)))
