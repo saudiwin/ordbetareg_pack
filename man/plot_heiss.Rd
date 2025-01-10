@@ -10,12 +10,13 @@ plot_heiss(
   recode_group_labels = NULL,
   ndraws = NULL,
   show_category_perc_labels = TRUE,
+  category_label_font_size = 3,
   strip_text_font = element_text(face = "plain", size = 9),
   plot_title = "Predicted Proportions of Bounded Scale Components",
   plot_subtitle = paste0("By Unique Values of ", grouping_fac),
   plot_caption =
-    "Plot shows predicted proportions of the components of a bounded scale, i.e. the predicted (expected) probability of the top value of the scale, the intermediate continuous values, and the bottom value of the scale. The predictions are subset for unique values of a grouping factor. The predictions are shown for multiple posterior draws to indicate uncertainty.",
-  plot_caption_width = 60,
+    "Plot shows predicted proportions of the components of a bounded scale, i.e. the predicted (expected) probability of the top value of the scale, the intermediate continuous values, and the bottom value of the scale. The predictions are subset for unique values of a grouping factor. The predictions are shown for multiple posterior draws to indicate uncertainty. Labels on components indicate posterior quantiles for the probability of that component for each level of the grouping variable.",
+  plot_caption_width = 70,
   calc_func = mean,
   lb = 0.05,
   upb = 0.95,
@@ -38,6 +39,9 @@ plot_heiss(
 \item{ndraws}{Optional. The number of posterior draws to use for predictions. If \code{NULL}, all available draws are used.}
 
 \item{show_category_perc_labels}{Logical. Whether to display category percentage labels on the plot. Defaults to \code{TRUE}.}
+
+\item{category_label_font_size}{The \code{ggplot2} font size for the labels on the
+scale components (if \code{show_category_perc_labels} is \code{TRUE}). Defaults to 3.}
 
 \item{strip_text_font}{A \code{ggplot2::element_text} object defining the font style for facet strip text. Defaults to \code{element_text(face = "plain", size = 9)}.}
 

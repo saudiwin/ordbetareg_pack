@@ -451,6 +451,8 @@ pp_check_ordbeta <- function(model=NULL,
 #' @param recode_group_labels Optional. A character vector of new labels for the grouping factor levels. Must match the number and order of unique levels/values in `grouping_fac`.
 #' @param ndraws Optional. The number of posterior draws to use for predictions. If `NULL`, all available draws are used.
 #' @param show_category_perc_labels Logical. Whether to display category percentage labels on the plot. Defaults to `TRUE`.
+#' @param category_label_font_size The `ggplot2` font size for the labels on the
+#' scale components (if `show_category_perc_labels` is `TRUE`). Defaults to 3.
 #' @param strip_text_font A `ggplot2::element_text` object defining the font style for facet strip text. Defaults to `element_text(face = "plain", size = 9)`.
 #' @param plot_title Title of the plot. Defaults to "Predicted Proportions of Bounded Scale Components".
 #' @param plot_subtitle Subtitle of the plot. Defaults to a message indicating the grouping variable.
@@ -493,6 +495,7 @@ plot_heiss <- function(object,
                        recode_group_labels=NULL,
                        ndraws=NULL,
                        show_category_perc_labels=TRUE,
+                       category_label_font_size=3,
                        strip_text_font=element_text(face="plain",size=9),
                        plot_title="Predicted Proportions of Bounded Scale Components",
                        plot_subtitle=paste0("By Unique Values of ",grouping_fac),
@@ -587,7 +590,7 @@ plot_heiss <- function(object,
     summarize(y=calc_func(pred),
               ymin=quantile(pred, upb),
               ymax=quantile(pred, lb)) %>%
-    mutate(component=factor(component, levels=component_labels))
+    mutate(component=factor(component, levels=rev(component_labels)))
 
   preds_local_text <- preds_local_plot %>%
     group_by(component, grouping_fac) %>%
@@ -631,7 +634,7 @@ plot_heiss <- function(object,
   if(show_category_perc_labels) outplot <- outplot + geom_text(
     data = preds_local_text,
     aes(x = max(preds_local_plot$.draw)-min(quantile(preds_local_plot$.draw,.35)), y = y_plot, label = prop_ci_nice),
-    size = 3, fontface = "bold", color = "white"
+    size = category_label_font_size, fontface = "bold", color = "white"
   )
 
   outplot
