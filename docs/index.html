@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Ordered Beta Regression – ordbetareg</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar floating nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">ordbetareg</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/saudiwin/ordbetareg_pack"> <i class="bi bi-github" role="img" aria-label="ordbetareg GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">Home</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Home</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false">
+ <span class="menu-text">Articles</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vignettes/package_introduction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction to <code>ordbetareg</code></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false">
+ <span class="menu-text">Reference</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/dordbeta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">dordbeta</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/fit_imputed.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fit_imputed</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/fit_multivariate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fit_multivariate</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/normalize.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">normalize</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/ord_fit_mean.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ord_fit_mean</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/ord_fit_phi.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ord_fit_phi</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/ordbetareg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ordbetareg</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/pew.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">pew</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/plot_heiss.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">plot_heiss</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/posterior_epred_ordbeta.brmsfit.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">posterior_epred_ordbeta.brmsfit</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/pp_check_ordbeta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">pp_check_ordbeta</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/rordbeta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">rordbeta</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/sim_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">sim_data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./man/sim_ordbeta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">sim_ordbeta</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./NEWS.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">News</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./LICENSE.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">License</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./CITATION.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Citation</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<div class="quarto-about-jolla">
+ <header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Ordered Beta Regression</h1>
+</div>
+<div class="quarto-title-meta">
+  </div>
+</header><main class="content" id="quarto-document-content">
+<section id="about-the-model" class="level2">
+<h2 data-anchor-id="about-the-model">About the Model</h2>
+<p>Proportion data–percentiles, slider scales, visual-analog scales–have long puzzled statisticians because they combine two things: a continuous measure (the proportion) and a discrete measure (the top value of 1 or 100% and the bottom value of 0 or 0%). Conventional statistical models like the oft-used OLS regression implicitly assume these boundaries do not exist; this means an OLS regression can predict to absurd values like 115% of patients being sick or -5% of legislators being elected.</p>
+<p>To address this issue, I developed the ordered beta regression model that combines two things: beta regression, which is defined for any bounded continuous scale, and ordered logit, which works for discrete categories. By doing this, you can fit an ordered beta regression for any percentile/proportion for <em>both</em> the middle continuous part and the bounds of the scale. This model can also predict within this scale as well.</p>
+<p>I describe the model and how to do this type of <a href="https://www.robertkubinec.com/post/limited_dvs/">modeling in this blog post</a>. For more detail on the inner workings of the model, I refer you to the paper:</p>
+<p>Kubinec, Robert. 2023. “Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds.” Political Analysis 31(4): 519–36. doi: <a href="http://doi.org/10.1017/pan.2022.20" class="uri">http://doi.org/10.1017/pan.2022.20</a>.</p>
+<p>For an ungated version of the article, see the pre-publication draft on OSF:</p>
+<p><a href="https://osf.io/preprints/socarxiv/2sx6y" class="uri">https://osf.io/preprints/socarxiv/2sx6y</a></p>
+</section>
+<section id="support-ordbetareg" class="level2">
+<h2 data-anchor-id="support-ordbetareg">Support ordbetareg</h2>
+<p>If you’ve enjoyed using the package, consider buying some <code>ordbetareg</code> swag! Click the image below to go to the online store (I receive a few dollars from each order).</p>
+<div>
+</div>
+<div class="quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="https://rmk-designs.printify.me/product/15852280/this-is-not-normal-ordbetareg-t-shirt"><img src="screen1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:2in"></a></p>
+</figure>
+</div>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="https://rmk-designs.printify.me/product/15852502/this-is-not-normal-ordbetareg-coffee-mug"><img src="screen2.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:2in"></a></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="how-to-use-the-model" class="level2">
+<h2 data-anchor-id="how-to-use-the-model">How to Use the Model</h2>
+<p>At present, ordered beta regression is available in Stan (<a href="#sec-stan" class="quarto-xref">Section&nbsp;3.5</a>), R (<a href="#sec-r" class="quarto-xref">Section&nbsp;3.1</a>), Python (<a href="#sec-python" class="quarto-xref">Section&nbsp;3.2</a>), Stata (<a href="#sec-stata" class="quarto-xref">Section&nbsp;3.3</a>), and Julia (<a href="#sec-julia" class="quarto-xref">Section&nbsp;3.4</a>). R has the strongest support for the model with multiple implementations, but it is perfectly usable in other statistical frameworks. Below I briefly describe the available packages.</p>
+<section id="sec-r" class="level3">
+<h3 data-anchor-id="sec-r">R</h3>
+<p>Ordered beta regression is currently available in R in two different packages: <a href="https://cran.r-project.org/web/packages/ordbetareg/index.html"><code>ordbetareg</code></a> and <a href="https://cran.r-project.org/web/packages/glmmTMB/index.html"><code>glmmTMB</code></a>. The primary difference between these two packages is estimation method and the number of ordered beta-specific functions. <code>ordbetareg</code> is a package that estimates a Bayesian implementation as described in the paper above by using <code>brms</code>, a powerful R package for Bayesian regression. <code>ordbetareg</code> is maintained by me and you can see the full source code here on <a href="https://github.com/saudiwin/ordbetareg_pack">Github</a> (and report <a href="https://github.com/saudiwin/ordbetareg_pack/issues">an issue with the package</a> if you have one). The package includes auxiliary functions like power analysis and plots that are specific to proportion responses—check out <a href="https://cran.r-project.org/web/packages/ordbetareg/index.html">the package vignette</a> for more details.</p>
+<p><code>glmmTMB</code>, by contrast, is a general purpose regression package that specializes in mixed multilevel models. It implements a broad array of regression models using maximum likelihood. This means that a model estimated in <code>glmmTMB</code> will almost certainly be faster than <code>ordbetareg</code> (although if you set up <code>ordbetareg</code> to use <a href="https://mc-stan.org/cmdstanr/"><code>cmdstanr</code></a> it can get pretty fast). On the other hand, maximum likelihood estimation has some limitations. Arguably the most important one is that it can be tricky to fit a model that doesn’t have observations at the bounds, i.e.&nbsp;either 0 (0%) or 1 (100%). The Bayesian implementation in <code>ordbetareg</code> has no problem doing this.</p>
+<p>That being said, I think <code>glmmTMB</code> is a fine package and believe it works fine for many scholars’ problems. <code>brms</code>, which <code>ordbetareg</code> is based on, offers a lot more features, including native support for multiple imputation, time series modeling and even latent variable/factor analysis modeling, but it does require more setup and the models are generally slower.</p>
+<p>For either package, I highly recommend using <a href="https://marginaleffects.com/"><code>marginaleffects</code></a>, and in particular the <code>avg_slopes</code> function, to convert the coefficient estimates in the package to the bounded scale (i.e.&nbsp;between 0 and 1). This function allows you to then interpret your model estimates as the effect of a covariate in terms of percentage change/proportion change in the bounded response/outcome. <code>marginaleffects</code> is available <a href="https://cran.r-project.org/web/packages/marginaleffects/index.html">on CRAN</a> and works great with both <code>ordbetareg</code> and <code>glmmTMB</code>.</p>
+<p>With both of these packages available, ordered beta regression has <strong>very strong</strong> support in R. If you don’t have a preference for a particular software package and want to use this model, I would recommend R.</p>
+</section>
+<section id="sec-python" class="level3">
+<h3 data-anchor-id="sec-python">Python</h3>
+<p>Ordered beta regression is implemented using the <code>scipy</code> package with maximum likelihood estimation. At present, you’ll need to clone (i.e., download) this <a href="https://github.com/saudiwin/ordbetareg_py">Github repository</a> to install the package as it is not yet available with <code>pip</code> or <code>conda forge</code>. The package includes plotting functions specific to proportion outcomes and reports coefficient values in the untransformed (logit) scale. <code>marginaleffects</code> support for this package is coming soon.</p>
+</section>
+<section id="sec-stata" class="level3">
+<h3 data-anchor-id="sec-stata">Stata</h3>
+<p>There is initial support for Stata as a set of .ado files that can be downloaded and installed in the <code>ado</code> folder in your Stata machine. More details are available on the <a href="https://github.com/saudiwin/ordbetareg_stata">Github repository</a>. This package supports using the <code>margins</code> command to convert coefficients to the bounded outcome scale, although it does not support all Stata features as of yet. There are plans to make this package available via SSC in the near future.</p>
+</section>
+<section id="sec-julia" class="level3">
+<h3 data-anchor-id="sec-julia">Julia</h3>
+<p>Ordered beta regression is available via the <a href="https://github.com/DominiqueMakowski/SubjectiveScalesModels.jl/tree/825f3fc089e64361e72e1a336003ea78320dc496"><code>SubjectiveScalesModels.jl</code></a> package, which offers support for a variety of regression models useful in cognitive psychology and other fields with sliders/visual analog scales. The package includes neat visualizations and is maintained by <a href="https://dominiquemakowski.github.io/">Dominique Makowksi</a>.</p>
+</section>
+<section id="sec-stan" class="level3">
+<h3 data-anchor-id="sec-stan">Stan</h3>
+<p>As is evident in the paper, the original model was written in Stan code. While I no longer am maintaining the Stan code, <a href="https://github.com/saudiwin/ordbetareg/blob/master/beta_logit.stan">it is available in the paper repository</a> and works great. If you want to incorporate the likelihood or other Stan code into your Stan model, feel free!</p>
+
+
+</section>
+</section>
+</main>  
+</div>
+ <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

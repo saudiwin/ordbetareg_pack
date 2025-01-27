@@ -1,0 +1,2968 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Robert Kubinec">
+<meta name="dcterms.date" content="2025-01-27">
+
+<title>Introduction to ordbetareg – ordbetareg</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">ordbetareg</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/saudiwin/ordbetareg_pack"> <i class="bi bi-github" role="img" aria-label="ordbetareg GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../vignettes/package_introduction.html">Articles</a></li><li class="breadcrumb-item"><a href="../vignettes/package_introduction.html">Introduction to <code>ordbetareg</code></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Home</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Articles</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../vignettes/package_introduction.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Introduction to <code>ordbetareg</code></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false">
+ <span class="menu-text">Reference</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/dordbeta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">dordbeta</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/fit_imputed.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fit_imputed</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/fit_multivariate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fit_multivariate</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/normalize.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">normalize</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/ord_fit_mean.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ord_fit_mean</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/ord_fit_phi.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ord_fit_phi</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/ordbetareg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ordbetareg</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/pew.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">pew</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/plot_heiss.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">plot_heiss</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/posterior_epred_ordbeta.brmsfit.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">posterior_epred_ordbeta.brmsfit</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/pp_check_ordbeta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">pp_check_ordbeta</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/rordbeta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">rordbeta</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/sim_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">sim_data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../man/sim_ordbeta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">sim_ordbeta</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../NEWS.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">News</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../LICENSE.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">License</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../CITATION.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Citation</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../vignettes/package_introduction.html">Articles</a></li><li class="breadcrumb-item"><a href="../vignettes/package_introduction.html">Introduction to <code>ordbetareg</code></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Introduction to <code>ordbetareg</code></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Robert Kubinec </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">January 27, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview" class="level1">
+<h1>Overview</h1>
+<p>The ordered beta regression model is designed explicitly for data with upper and lower bounds, such as survey slider scales, dose/response relationships, and anything that can be considered a proportion or a percentage. This type of data cannot be fit with the standard beta regression model because the beta distribution does not allow for any observations at the bounds, such as a percentage/proportion of 0% or 100%. The ordered beta regression model solves this problem by combining the beta distribution with an ordinal distribution over continuous and discrete, or degenerate, observations at the bounds. It is an efficient model that produces intelligible estimates that also respect the bounds of the dependent variable.</p>
+<p><strong>Please note that this is not the only implementation of ordered beta regression. For more info on alternatives, including other statistical software packages, see the package website.</strong></p>
+<p>For more information, I refer you to my <a href="https://www.cambridge.org/core/journals/political-analysis/article/ordered-beta-regression-a-parsimonious-wellfitting-model-for-continuous-data-with-lower-and-upper-bounds/89F4141DA16D4FC217809B5EB45EEE83">paper on the model</a> for more details (also there is an ungated version available <a href="https://osf.io/preprints/socarxiv/2sx6y/">here</a>).</p>
+<p>This notebook contains instructions for running the ordered beta regression model in the R package <code>ordbetareg</code>. <code>ordbetareg</code> is a front-end to <code>brms</code>, a very powerful regression modeling package based on the <a href="https://mc-stan.org/">Stan Hamiltonian Markov Chain Monte Carlo</a> sampler. I only show in this vignette a small part of the features which are available via <code>brms</code>, and I refer the user to the <a href="https://paul-buerkner.github.io/brms/">copious documentation describing the features of the brms package</a>. Suffice it to say that most kinds of regression models can be fit with the software, including hierarchical, dynamic, nonlinear and multivariate models (or all of the above in combination). The <code>ordbetareg</code> package allows for all of these features to be used with the ordered regression model distribution by adding this distribution to <code>brms</code>.</p>
+<p>The reproducible Quarto file this vignette is compiled from can be accessed from <a href="https://github.com/saudiwin/ordbetareg_pack/blob/master/vignettes/package_introduction.qmd">the package Github site</a>.</p>
+<p>If you use the model in a paper, please cite it as:</p>
+<p>Kubinec, Robert. “Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds.” <em>Political Analysis.</em> 2022. Forthcoming.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># whether to run models from scratch</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>run_model <span class="ot">&lt;-</span> F</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="underlying-stan-code" class="level1">
+<h1>Underlying Stan Code</h1>
+<p>If you want the underlying Stan code (say to fit the model with <code>cmdstanr</code>), you can get it from this repo:</p>
+<p><a href="https://github.com/saudiwin/ordbetareg/blob/master/beta_logit_phireg.stan" class="uri">https://github.com/saudiwin/ordbetareg/blob/master/beta_logit_phireg.stan</a></p>
+<p>This syntax is different from that used in the <code>ordbetareg</code> package, and is most useful if you want to derive your own custom version that makes use of <a href="https://mc-stan.org/">Stan’s extensive features</a> as a Bayesian estimation engine.</p>
+</section>
+<section id="data-preparation" class="level1">
+<h1>Data Preparation</h1>
+<p>In this vignette I use an empirical application from data from a Pew Forum survey built into the package to show how the package works. It is also possible to generate simulated ordered beta data using the <code>rordbeta</code> function, as I do later in this guide. The following plot shows a histogram of respondents’ views towards college professors based on a bounded 0 to 100 scale:</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"pew"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>pew <span class="sc">%&gt;%</span> </span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span><span class="fu">as.numeric</span>(therm))) <span class="sc">+</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins=</span><span class="dv">100</span>) <span class="sc">+</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span> </span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">panel.grid=</span><span class="fu">element_blank</span>()) <span class="sc">+</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks=</span><span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">25</span>,<span class="dv">50</span>,<span class="dv">75</span>,<span class="dv">100</span>),</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>                     <span class="at">labels=</span><span class="fu">c</span>(<span class="st">"0"</span>,<span class="st">"Colder"</span>,<span class="st">"50"</span>,<span class="st">"Warmer"</span>,<span class="st">"100"</span>)) <span class="sc">+</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">caption=</span><span class="fu">paste0</span>(<span class="st">"Figure shows the distribution of "</span>,<span class="fu">sum</span>(<span class="sc">!</span><span class="fu">is.na</span>(pew<span class="sc">$</span>therm)),<span class="st">" non-missing survey responses."</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="package_introduction_files/figure-html/load_data-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The distributions of feelings towards college professors contains both degenerate (0 and 100) and continuous responses between 0 and 100. To model it, the outcome needs to be re-scaled to lie strictly between 0 and 1. However, it is not necessary to do that ahead of time as the <code>ordbetareg</code> package will do that re-normalization internally. I also do some other data processing tasks:</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>model_data <span class="ot">&lt;-</span> <span class="fu">select</span>(pew,therm,<span class="at">age=</span><span class="st">"F_AGECAT_FINAL"</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">sex=</span><span class="st">"F_SEX_FINAL"</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">income=</span><span class="st">"F_INCOME_FINAL"</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">ideology=</span><span class="st">"F_IDEO_FINAL"</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">race=</span><span class="st">"F_RACETHN_RECRUITMENT"</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>                        <span class="at">education=</span><span class="st">"F_EDUCCAT2_FINAL"</span>,</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>                     <span class="at">region=</span><span class="st">"F_CREGION_FINAL"</span>,</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>                        <span class="at">approval=</span><span class="st">"POL1DT_W28"</span>,</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>                       <span class="at">born_again=</span><span class="st">"F_BORN_FINAL"</span>,</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>                       <span class="at">relig=</span><span class="st">"F_RELIG_FINAL"</span>,</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>                        <span class="at">news=</span><span class="st">"NEWS_PLATFORMA_W28"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate_at</span>(<span class="fu">c</span>(<span class="st">"race"</span>,<span class="st">"ideology"</span>,<span class="st">"income"</span>,<span class="st">"approval"</span>,<span class="st">"sex"</span>,<span class="st">"education"</span>,<span class="st">"born_again"</span>,<span class="st">"relig"</span>), <span class="cf">function</span>(c) {</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">factor</span>(c, <span class="at">exclude=</span><span class="fu">levels</span>(c)[<span class="fu">length</span>(<span class="fu">levels</span>(c))])</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    }) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># need to make these ordered factors for BRMS</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">education=</span><span class="fu">ordered</span>(education),</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>           <span class="at">income=</span><span class="fu">ordered</span>(income))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The completed dataset has 2538 observations.</p>
+</section>
+<section id="run-in-ordbetareg" class="level1">
+<h1>Run In <code>ordbetareg</code></h1>
+<p>The <code>ordbetareg</code> function will take care of normalizing the outcome and adding additional information necessary to estimate the distribution. Any additional arguments can be passed to the underlying <code>brm</code> function to use specific <code>brm</code> features. For example, in the code below I use the <code>backend="cmdstanr"</code> argument to <code>brm()</code>, which allows me to use the R package <code>cmdstanr</code> for estimating models. <code>cmdstanr</code> tends to have the most up to date version of Stan, though you must <a href="https://mc-stan.org/cmdstanr/">install it yourself</a>.</p>
+<p>What you need to pass to the <code>ordbetareg</code> function are the standard components of any R model: a formula and a dataset that has all the variables mentioned in the formula. There are additional parameters that allow you to modify the priors, such as for the dispersion parameter <code>phi</code>. While in most cases these priors are sensible defaults, if you have data with an unusual scale (such as very large or very small values), you may want to change the priors to ensure they are not having an outsize effect on your estimates. If you want to assign a prior to specific regression coefficient or another part of the model, you can use the <code>extra_prior</code> option and pass a <code>brms</code>-compliant prior object.</p>
+<p>If you want to use some of <code>brms</code> more powerful techniques, such as multivariate modeling, you can also pass the result of a <code>bf</code> function call to the <code>formula</code> argument. I refer you to the <code>brmsformula()</code> <a href="https://paul-buerkner.github.io/brms/reference/brmsformula.html">function help</a> for more details.</p>
+<p>To demonstrate some of the power of using <code>brms</code> as a regression engine, I will model education and income as ordinal predictors by using the <code>mo()</code> function in the formula definition. By doing so, we can get a single effect for education and income instead of having to use dummies for separate education/income categories. As a result, I can include an interaction between the two variables to see if wealthier more educated people have better views towards college professors than poorer better educated people. Finally, I include varying (random) census region intercepts.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(run_model) {</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  ord_fit_mean <span class="ot">&lt;-</span> <span class="fu">ordbetareg</span>(<span class="at">formula=</span>therm <span class="sc">~</span> <span class="fu">mo</span>(education)<span class="sc">*</span><span class="fu">mo</span>(income) <span class="sc">+</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>                               (<span class="dv">1</span><span class="sc">|</span>region), </span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>                       <span class="at">data=</span>model_data,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>                       <span class="at">control=</span><span class="fu">list</span>(<span class="at">adapt_delta=</span><span class="fl">0.95</span>),</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>                <span class="at">cores=</span><span class="dv">1</span>,<span class="at">chains=</span><span class="dv">1</span>,<span class="at">iter=</span><span class="dv">500</span>,</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>                <span class="at">refresh=</span><span class="dv">0</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>                <span class="co"># </span><span class="al">NOTE</span><span class="co">: to do parallel processing within chains</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>                <span class="co"># add the options below</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>                <span class="co">#threads=5,</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>                <span class="co">#backend="cmdstanr"</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>                <span class="co">#where threads is the number of cores per chain</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>                <span class="co"># you must have cmdstanr set up to do so</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>                <span class="co"># see https://mc-stan.org/cmdstanr/</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data</span>(<span class="st">"ord_fit_mean"</span>)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Because this model is somewhat complicated with multiple ordinal factors and multilevel intercepts, I use the option <code>adapt_delta=0.95</code> to improve sampling and remove divergent transitions.</p>
+<section id="changing-priors" class="level2">
+<h2 class="anchored" data-anchor-id="changing-priors">Changing priors</h2>
+<p>The default priors in <code>ordbetareg</code> are weakly informative for data that is scaled roughly between <span class="math inline">\([-10,10]\)</span>. Outside of those scales, you may want to increase the SD of the Normal prior on regression coefficients via the <code>coef_prior_sd</code> and/or <code>phi_coef_prior_sd</code> options to <code>ordbetareg</code> (depending on whether the prior is for the coefficients in the main outcome model or the auxiliary dispersion <code>phi</code> regression). If you need to set a specific prior on the intercept, pass values to the <code>intercept_prior_mean</code>/<code>phi_intercept_prior_mean</code> and <code>intercept_prior_sd</code>/<code>phi_intercept_prior_sd</code> parameters (you need to have values for both for the prior to be set correctly) to set a Normally-distributed prior on the intercept. You can also zero out the intercept by setting a tight prior around 0, such as <code>intercept_prior_mean=0</code> and <code>intercept_prior_sd=0.001</code>.</p>
+<p>If you need to do something more involved with priors, you can use the <code>extra_prior</code> option. This argument can take any <code>brms</code>-specified prior, including any of the many <code>brms</code> options for priors. These options are beyond the scope of the vignette, but I refer the reader to the <a href="https://www.jstatsoft.org/article/view/v080i01"><code>brms</code> documentation for more info</a>.</p>
+</section>
+</section>
+<section id="post-estimation" class="level1">
+<h1>Post-Estimation</h1>
+<section id="visualization" class="level2">
+<h2 class="anchored" data-anchor-id="visualization">Visualization</h2>
+<p>We can visualize the model cutpoints by showing them relative to the empirical distribution. To do so, we have to transform the cutpoints using the inverse logit function in R (<code>plogis</code>) to get back values in the scale of the response, and I have to exponentiate and add the first cutpoint to get the correct value for the second cutpoint. The plot shows essentially how spread-out the cutpoints are relative to the data, though it should be noted that the analogy is inexact–it is not the case that observations above or below the cutpoints are considered to be discrete or continuous. Rather, as distance from the cutpoints increases, the probability of a discrete or continuous response increases. Cutpoints that are far apart indicate a data distribution that shows substantial differences between continuous and discrete observations.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>all_draws <span class="ot">&lt;-</span> <span class="fu">prepare_predictions</span>(ord_fit_mean)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>cutzero <span class="ot">&lt;-</span> <span class="fu">plogis</span>(all_draws<span class="sc">$</span>dpars<span class="sc">$</span>cutzero)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>cutone <span class="ot">&lt;-</span> <span class="fu">plogis</span>(all_draws<span class="sc">$</span>dpars<span class="sc">$</span>cutzero <span class="sc">+</span> <span class="fu">exp</span>(all_draws<span class="sc">$</span>dpars<span class="sc">$</span>cutone))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>pew <span class="sc">%&gt;%</span> </span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>therm)) <span class="sc">+</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins=</span><span class="dv">100</span>) <span class="sc">+</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span> </span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">panel.grid=</span><span class="fu">element_blank</span>()) <span class="sc">+</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks=</span><span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">25</span>,<span class="dv">50</span>,<span class="dv">75</span>,<span class="dv">100</span>),</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>                     <span class="at">labels=</span><span class="fu">c</span>(<span class="st">"0"</span>,<span class="st">"Colder"</span>,<span class="st">"50"</span>,<span class="st">"Warmer"</span>,<span class="st">"100"</span>)) <span class="sc">+</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fu">mean</span>(cutzero)<span class="sc">*</span><span class="dv">100</span>,<span class="at">linetype=</span><span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fu">mean</span>(cutone)<span class="sc">*</span><span class="dv">100</span>,<span class="at">linetype=</span><span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">caption=</span><span class="fu">paste0</span>(<span class="st">"Figure shows the distribution of "</span>,<span class="fu">sum</span>(<span class="sc">!</span><span class="fu">is.na</span>(pew<span class="sc">$</span>therm)),<span class="st">" non-missing survey responses."</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="package_introduction_files/figure-html/plot_cut-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The plot shows that the model sees significant heterogeneity between the discrete responses at the bounds and the continuous responses in the plot.</p>
+<p>The best way to visualize model fit is to plot the full predictive distribution relative to the original outcome. Because ordered beta regression is a mixed discrete/continuous model, a separate plotting function, <code>pp_check_ordbeta</code>, is included that accurately handles the unique features of this distribution. This function returns a list with two plots, <code>discrete</code> and <code>continuous</code>, which can either be printed and plotted or further modified as <code>ggplot2</code> objects.</p>
+<p>The discrete plot, which is a bar graph, shows that the posterior distribution accurately captures the number of different types of responses (discrete or continuous) in the data. For the continuous plot, shown as a density plot with one line per posterior draw, the model can’t capture all of the modality in the distribution – there are effectively four separate modes – but it is reasonably accurate over the middle responses and the responses near the bounds.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># new theme option will add in new ggplot2 themes or themes</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># from other packages</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>plots <span class="ot">&lt;-</span> <span class="fu">pp_check_ordbeta</span>(ord_fit_mean,</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>                          <span class="at">ndraws=</span><span class="dv">100</span>,</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>                          <span class="at">outcome_label=</span><span class="st">"Thermometer Rating"</span>,</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>                          <span class="at">new_theme=</span>ggthemes<span class="sc">::</span><span class="fu">theme_economist</span>())</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>plots<span class="sc">$</span>discrete</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="package_introduction_files/figure-html/post_predict-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>plots<span class="sc">$</span>continuous</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="package_introduction_files/figure-html/post_predict-2.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The <code>pp_check_ordbeta</code> function can also show each posterior draw one at a time in an animated plot if the <code>animate</code> option is set to TRUE. This option requires the installation of the additional packages <code>gganimate</code> and <code>transformr</code>.</p>
+</section>
+<section id="coefficients-and-marginal-effects-reporting" class="level2">
+<h2 class="anchored" data-anchor-id="coefficients-and-marginal-effects-reporting">Coefficients and Marginal Effects Reporting</h2>
+<p>We can see the coefficients from the model in table form using the <code>modelsummary</code> package, which has support for <code>brms</code> models. We’ll specify only confidence intervals as other frequentist statistics have no Bayesian analogue (i.e.&nbsp;p-values). We’ll also specify only the main effects of the ordinal predictors, and give them more informative names.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(modelsummary)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">modelsummary</span>(ord_fit_mean,<span class="at">statistic =</span> <span class="st">"conf.int"</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">metrics =</span> <span class="st">"RMSE"</span>,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>             <span class="at">coef_map=</span><span class="fu">c</span>(<span class="st">"b_Intercept"</span><span class="ot">=</span><span class="st">"Intercept"</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"bsp_moeducation"</span><span class="ot">=</span><span class="st">"Education"</span>,</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"bsp_moincome"</span><span class="ot">=</span><span class="st">"Income"</span>,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>                        <span class="st">"bsp_moeducation:moincome"</span><span class="ot">=</span><span class="st">"EducationXIncome"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="etfmcwlvlg" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#etfmcwlvlg table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#etfmcwlvlg thead, #etfmcwlvlg tbody, #etfmcwlvlg tfoot, #etfmcwlvlg tr, #etfmcwlvlg td, #etfmcwlvlg th {
+  border-style: none;
+}
+
+#etfmcwlvlg p {
+  margin: 0;
+  padding: 0;
+}
+
+#etfmcwlvlg .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#etfmcwlvlg .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#etfmcwlvlg .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#etfmcwlvlg .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#etfmcwlvlg .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#etfmcwlvlg .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#etfmcwlvlg .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#etfmcwlvlg .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#etfmcwlvlg .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#etfmcwlvlg .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#etfmcwlvlg .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#etfmcwlvlg .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#etfmcwlvlg .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#etfmcwlvlg .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#etfmcwlvlg .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#etfmcwlvlg .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#etfmcwlvlg .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#etfmcwlvlg .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#etfmcwlvlg .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#etfmcwlvlg .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#etfmcwlvlg .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#etfmcwlvlg .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#etfmcwlvlg .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#etfmcwlvlg .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#etfmcwlvlg .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#etfmcwlvlg .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#etfmcwlvlg .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#etfmcwlvlg .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#etfmcwlvlg .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#etfmcwlvlg .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#etfmcwlvlg .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#etfmcwlvlg .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#etfmcwlvlg .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#etfmcwlvlg .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#etfmcwlvlg .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#etfmcwlvlg .gt_left {
+  text-align: left;
+}
+
+#etfmcwlvlg .gt_center {
+  text-align: center;
+}
+
+#etfmcwlvlg .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#etfmcwlvlg .gt_font_normal {
+  font-weight: normal;
+}
+
+#etfmcwlvlg .gt_font_bold {
+  font-weight: bold;
+}
+
+#etfmcwlvlg .gt_font_italic {
+  font-style: italic;
+}
+
+#etfmcwlvlg .gt_super {
+  font-size: 65%;
+}
+
+#etfmcwlvlg .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#etfmcwlvlg .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#etfmcwlvlg .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#etfmcwlvlg .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#etfmcwlvlg .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#etfmcwlvlg .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#etfmcwlvlg .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#etfmcwlvlg .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#etfmcwlvlg div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+
+<table class="gt_table caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="a-" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col"></th>
+<th id="a(1)" class="gt_col_heading gt_columns_bottom_border gt_center" data-quarto-table-cell-role="th" scope="col">(1)</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">Intercept</td>
+<td class="gt_row gt_center" headers="(1)">0.183</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" "></td>
+<td class="gt_row gt_center" headers="(1)">[-0.013, 0.388]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">Education</td>
+<td class="gt_row gt_center" headers="(1)">0.115</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" "></td>
+<td class="gt_row gt_center" headers="(1)">[0.014, 0.188]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">Income</td>
+<td class="gt_row gt_center" headers="(1)">-0.052</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" "></td>
+<td class="gt_row gt_center" headers="(1)">[-0.090, -0.013]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">EducationXIncome</td>
+<td class="gt_row gt_center" headers="(1)">0.007</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" " style="border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: #000000"></td>
+<td class="gt_row gt_center" headers="(1)" style="border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: #000000">[-0.008, 0.023]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">Num.Obs.</td>
+<td class="gt_row gt_center" headers="(1)">2431</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" ">RMSE</td>
+<td class="gt_row gt_center" headers="(1)">0.29</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><code>modelsummary</code> tables have many more options, including output to both html and latex formats. I refer the reader to the <a href="https://vincentarelbundock.github.io/modelsummary/articles/modelsummary.html">package documentation</a> for more info.</p>
+<section id="marginal-effects" class="level3">
+<h3 class="anchored" data-anchor-id="marginal-effects">Marginal Effects</h3>
+<p>There is a related package, <code>marginaleffects</code>, that allows us to convert these coefficients into more meaningful marginal effect estimates, i.e., the effect of the predictors expresses as the actual change in the outcome on the 0 - 1 scale. Because we have two variables in our model that are both ordinal in nature, <code>marginaleffects</code> will produce an estimate of the marginal effect of each value of each ordinal predictor. I use the <code>avg_slopes</code> function to convert the <code>ordbetareg</code> model to a data frame of marginal/conditional effects in the scale of the outcome that can be easily printed:</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">avg_slopes</span>(ord_fit_mean, <span class="at">variables=</span><span class="st">"education"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">Variable=</span><span class="st">"term"</span>,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">Level=</span><span class="st">"contrast"</span>,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">5% Quantile</span><span class="st">`</span><span class="ot">=</span><span class="st">"conf.low"</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">Posterior Mean</span><span class="st">`</span><span class="ot">=</span><span class="st">"estimate"</span>,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">95% Quantile</span><span class="st">`</span><span class="ot">=</span><span class="st">"conf.high"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">"Marginal Effect of Education on Professor Thermometer"</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>               <span class="at">format.args=</span><span class="fu">list</span>(<span class="at">digits=</span><span class="dv">2</span>),</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>               <span class="at">align=</span><span class="fu">c</span>(<span class="st">'llccc'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Marginal Effect of Education on Professor Thermometer</caption>
+<colgroup>
+<col style="width: 9%">
+<col style="width: 50%">
+<col style="width: 12%">
+<col style="width: 14%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Variable</th>
+<th style="text-align: left;">Level</th>
+<th style="text-align: center;">5% Quantile</th>
+<th style="text-align: center;">Posterior Mean</th>
+<th style="text-align: center;">95% Quantile</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">education</td>
+<td style="text-align: left;">Associate’s degree - Less than high school</td>
+<td style="text-align: center;">0.0157</td>
+<td style="text-align: center;">0.070</td>
+<td style="text-align: center;">0.129</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">education</td>
+<td style="text-align: left;">College graduate/some postgrad - Less than high school</td>
+<td style="text-align: center;">0.0795</td>
+<td style="text-align: center;">0.130</td>
+<td style="text-align: center;">0.177</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">education</td>
+<td style="text-align: left;">High school graduate - Less than high school</td>
+<td style="text-align: center;">-0.0048</td>
+<td style="text-align: center;">0.015</td>
+<td style="text-align: center;">0.055</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">education</td>
+<td style="text-align: left;">Postgraduate - Less than high school</td>
+<td style="text-align: center;">0.1500</td>
+<td style="text-align: center;">0.201</td>
+<td style="text-align: center;">0.245</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">education</td>
+<td style="text-align: left;">Some college, no degree - Less than high school</td>
+<td style="text-align: center;">0.0059</td>
+<td style="text-align: center;">0.048</td>
+<td style="text-align: center;">0.101</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>We can see that we have separate marginal effects for each level of education due to modeling it as an ordinal predictor. At present the <code>avg_slopes()</code> function cannot calculate a single effect, though that is possible manually. As we can see with the raw coefficient in the table above, the marginal effects are all positive, though the magnitude varies across different levels of education.</p>
+<p>Note as well that the <code>slopes</code> function can calculate unit-level (row-wise) estimates of the predictors on the outcome (see <code>marginaleffects</code> documentation for more info).</p>
+</section>
+</section>
+</section>
+<section id="multiple-imputation" class="level1">
+<h1>Multiple Imputation</h1>
+<p><code>ordbetareg</code> supports <code>brms</code> functions for using multiple imputed datasets and for multivariate (multiple response) modeling, at least with two response variables. <code>brms</code> is able to apply the model to a list of multiple-imputed datasets (created with other packages such as <code>mice</code>) and then combine the resulting models into a single posterior distribution, which makes it very easy to do inference. I first demonstrate briefly how to do this and also multivariate modeling, but I refer the user to the <code>brms</code> documentation for more details.</p>
+<p>In the code below I use the <code>rordbeta</code> function to simulate some ordered beta responses given a covariate, then create missing values by replacing some values at random with <code>NA</code>. I use the <code>mice</code> package to impute this missing data, creating two imputed datasets which I then feed into <code>ordbetareg</code> and set the <code>use_brm_multiple</code> option to <code>TRUE</code>:</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># simplify things by using one covariate within the [0,1] interval</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">runif</span>(<span class="at">n =</span> <span class="dv">100</span>,<span class="dv">0</span>,<span class="dv">1</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>outcome <span class="ot">&lt;-</span> <span class="fu">rordbeta</span>(<span class="at">n=</span><span class="dv">100</span>,<span class="at">mu =</span> <span class="fl">0.3</span> <span class="sc">*</span> X, <span class="at">phi =</span><span class="dv">3</span>, <span class="at">cutpoints=</span><span class="fu">c</span>(<span class="sc">-</span><span class="dv">2</span>,<span class="dv">2</span>))</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># set 10% of values of X randomly to NA</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>X[<span class="fu">runif</span>(<span class="at">n=</span><span class="dv">100</span>)<span class="sc">&lt;</span><span class="fl">0.1</span>] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co"># create a list of two imputed datasets with package mice</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>mult_impute <span class="ot">&lt;-</span> mice<span class="sc">::</span><span class="fu">mice</span>(<span class="at">data=</span><span class="fu">tibble</span>(<span class="at">outcome=</span>outcome,</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">X=</span>X),<span class="at">m=</span><span class="dv">2</span>,<span class="at">printFlag =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>  mice<span class="sc">::</span><span class="fu">complete</span>(<span class="at">action=</span><span class="st">"all"</span>)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co"># pass list to the data argument and set use_brm_multiple to TRUE</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(run_model) {</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>  fit_imputed <span class="ot">&lt;-</span> <span class="fu">ordbetareg</span>(<span class="at">formula =</span> outcome <span class="sc">~</span> X,</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>                            <span class="at">data=</span>mult_impute,</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>                            <span class="at">use_brm_multiple =</span> T,</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>                            <span class="at">cores=</span><span class="dv">1</span>,<span class="at">chains=</span><span class="dv">1</span>, <span class="at">iter=</span><span class="dv">500</span>)</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data</span>(<span class="st">'fit_imputed'</span>)</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="co"># all functions now work as though the model had only one dataset</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a><span class="co"># imputation uncertainty included in all results/analyses</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a><span class="co"># marginal effects, though, only incorporate one imputed dataset</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">avg_slopes</span>(fit_imputed))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 12%">
+<col style="width: 10%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">term</th>
+<th style="text-align: right;">estimate</th>
+<th style="text-align: right;">conf.low</th>
+<th style="text-align: right;">conf.high</th>
+<th style="text-align: right;">predicted_lo</th>
+<th style="text-align: right;">predicted_hi</th>
+<th style="text-align: right;">predicted</th>
+<th style="text-align: right;">tmp_idx</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">X</td>
+<td style="text-align: right;">0.2925917</td>
+<td style="text-align: right;">0.1619268</td>
+<td style="text-align: right;">0.4435257</td>
+<td style="text-align: right;">0.179184</td>
+<td style="text-align: right;">0.1792375</td>
+<td style="text-align: right;">0.1792107</td>
+<td style="text-align: right;">1</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">modelsummary</span>(fit_imputed,<span class="at">statistic =</span> <span class="st">'conf.int'</span>,<span class="at">metrics=</span><span class="st">"all"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="fnfrdkgvkd" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#fnfrdkgvkd table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#fnfrdkgvkd thead, #fnfrdkgvkd tbody, #fnfrdkgvkd tfoot, #fnfrdkgvkd tr, #fnfrdkgvkd td, #fnfrdkgvkd th {
+  border-style: none;
+}
+
+#fnfrdkgvkd p {
+  margin: 0;
+  padding: 0;
+}
+
+#fnfrdkgvkd .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#fnfrdkgvkd .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#fnfrdkgvkd .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#fnfrdkgvkd .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#fnfrdkgvkd .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#fnfrdkgvkd .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#fnfrdkgvkd .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#fnfrdkgvkd .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#fnfrdkgvkd .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#fnfrdkgvkd .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#fnfrdkgvkd .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#fnfrdkgvkd .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#fnfrdkgvkd .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#fnfrdkgvkd .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#fnfrdkgvkd .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#fnfrdkgvkd .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#fnfrdkgvkd .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#fnfrdkgvkd .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#fnfrdkgvkd .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fnfrdkgvkd .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#fnfrdkgvkd .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#fnfrdkgvkd .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#fnfrdkgvkd .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fnfrdkgvkd .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#fnfrdkgvkd .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#fnfrdkgvkd .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#fnfrdkgvkd .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fnfrdkgvkd .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#fnfrdkgvkd .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#fnfrdkgvkd .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#fnfrdkgvkd .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#fnfrdkgvkd .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#fnfrdkgvkd .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fnfrdkgvkd .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#fnfrdkgvkd .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fnfrdkgvkd .gt_left {
+  text-align: left;
+}
+
+#fnfrdkgvkd .gt_center {
+  text-align: center;
+}
+
+#fnfrdkgvkd .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#fnfrdkgvkd .gt_font_normal {
+  font-weight: normal;
+}
+
+#fnfrdkgvkd .gt_font_bold {
+  font-weight: bold;
+}
+
+#fnfrdkgvkd .gt_font_italic {
+  font-style: italic;
+}
+
+#fnfrdkgvkd .gt_super {
+  font-size: 65%;
+}
+
+#fnfrdkgvkd .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#fnfrdkgvkd .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#fnfrdkgvkd .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#fnfrdkgvkd .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#fnfrdkgvkd .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#fnfrdkgvkd .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#fnfrdkgvkd .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#fnfrdkgvkd .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#fnfrdkgvkd div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+
+<table class="gt_table caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="a-" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col"></th>
+<th id="a(1)" class="gt_col_heading gt_columns_bottom_border gt_center" data-quarto-table-cell-role="th" scope="col">(1)</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">b_Intercept</td>
+<td class="gt_row gt_center" headers="(1)">-3.652</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" "></td>
+<td class="gt_row gt_center" headers="(1)">[-4.451, -2.907]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">b_X</td>
+<td class="gt_row gt_center" headers="(1)">2.453</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" "></td>
+<td class="gt_row gt_center" headers="(1)">[1.507, 3.571]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">phi</td>
+<td class="gt_row gt_center" headers="(1)">3.784</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" " style="border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: #000000"></td>
+<td class="gt_row gt_center" headers="(1)" style="border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: #000000">[2.258, 6.048]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">Num.Obs.</td>
+<td class="gt_row gt_center" headers="(1)">100</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" ">R2</td>
+<td class="gt_row gt_center" headers="(1)">0.091</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">ELPD</td>
+<td class="gt_row gt_center" headers="(1)">-1.6</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" ">ELPD s.e.</td>
+<td class="gt_row gt_center" headers="(1)">22.4</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">LOOIC</td>
+<td class="gt_row gt_center" headers="(1)">3.2</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" ">LOOIC s.e.</td>
+<td class="gt_row gt_center" headers="(1)">44.7</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">WAIC</td>
+<td class="gt_row gt_center" headers="(1)">3.1</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" ">RMSE</td>
+<td class="gt_row gt_center" headers="(1)">0.24</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="multivariate-modeling-and-mediation-analysis" class="level1">
+<h1>Multivariate Modeling and Mediation Analysis</h1>
+<p>In the following code, I show how to model a Gaussian/Normally-distributed variable and an ordered beta regression model together. This is useful when examining the role of a mediator, which we will simulate here as a Normally-distributed variable <code>Z</code>. In order to specify a different distribution than ordered beta, the <code>family</code> parameter must be specified in the <code>bf</code> formula function. Otherwise the function assumes that the distribution is ordered beta.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># generate a new Gaussian/Normal outcome with same predictor X and mediator</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Z</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">runif</span>(<span class="at">n =</span> <span class="dv">100</span>,<span class="dv">0</span>,<span class="dv">1</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>Z <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">100</span>, <span class="at">mean=</span><span class="dv">3</span><span class="sc">*</span>X)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co"># use logit function to map unbounded continuous data to [0,1] interval</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># X is mediated by Z</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>outcome <span class="ot">&lt;-</span> <span class="fu">rordbeta</span>(<span class="at">n=</span><span class="dv">100</span>, <span class="at">mu =</span> <span class="fu">plogis</span>(.<span class="dv">4</span> <span class="sc">*</span> X <span class="sc">+</span> <span class="fl">1.5</span> <span class="sc">*</span> Z))</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="co"># use the bf function from brms to specify two formulas/responses</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="co"># set_rescor must be FALSE as one distribution is not Gaussian (ordered beta)</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="co"># OLS for mediator</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>mod1 <span class="ot">&lt;-</span> <span class="fu">bf</span>(Z <span class="sc">~</span> X,<span class="at">family =</span> gaussian)</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="co"># ordered beta</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>mod2 <span class="ot">&lt;-</span> <span class="fu">bf</span>(outcome <span class="sc">~</span> X <span class="sc">+</span> Z)</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(run_model) {</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>  fit_multivariate <span class="ot">&lt;-</span> <span class="fu">ordbetareg</span>(<span class="at">formula=</span>mod1 <span class="sc">+</span> mod2 <span class="sc">+</span> <span class="fu">set_rescor</span>(<span class="cn">FALSE</span>),</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">data=</span><span class="fu">tibble</span>(<span class="at">outcome=</span>outcome,</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>                                             <span class="at">X=</span>X,<span class="at">Z=</span>Z),</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">cores=</span><span class="dv">1</span>,<span class="at">chains=</span><span class="dv">1</span>, <span class="at">iter=</span><span class="dv">500</span>)</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a><span class="co"># need to calculate each sub-model's marginal effects separately</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">avg_slopes</span>(fit_multivariate,<span class="at">resp=</span><span class="st">"outcome"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">term</th>
+<th style="text-align: right;">estimate</th>
+<th style="text-align: right;">conf.low</th>
+<th style="text-align: right;">conf.high</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">X</td>
+<td style="text-align: right;">-0.0870639</td>
+<td style="text-align: right;">-0.2572231</td>
+<td style="text-align: right;">0.0803635</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Z</td>
+<td style="text-align: right;">0.2040621</td>
+<td style="text-align: right;">0.1539249</td>
+<td style="text-align: right;">0.2380422</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">outcome</td>
+<td style="text-align: right;">0.0000000</td>
+<td style="text-align: right;">0.0000000</td>
+<td style="text-align: right;">0.0000000</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">avg_slopes</span>(fit_multivariate, <span class="at">resp=</span><span class="st">"Z"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">term</th>
+<th style="text-align: right;">estimate</th>
+<th style="text-align: right;">conf.low</th>
+<th style="text-align: right;">conf.high</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">X</td>
+<td style="text-align: right;">2.921544</td>
+<td style="text-align: right;">2.195102</td>
+<td style="text-align: right;">3.530645</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Z</td>
+<td style="text-align: right;">0.000000</td>
+<td style="text-align: right;">0.000000</td>
+<td style="text-align: right;">0.000000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">outcome</td>
+<td style="text-align: right;">0.000000</td>
+<td style="text-align: right;">0.000000</td>
+<td style="text-align: right;">0.000000</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressWarnings</span>(<span class="fu">modelsummary</span>(fit_multivariate,<span class="at">statistic =</span> <span class="st">"conf.int"</span>,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>             <span class="at">metrics=</span><span class="st">"none"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="lhjbvbexxp" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#lhjbvbexxp table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#lhjbvbexxp thead, #lhjbvbexxp tbody, #lhjbvbexxp tfoot, #lhjbvbexxp tr, #lhjbvbexxp td, #lhjbvbexxp th {
+  border-style: none;
+}
+
+#lhjbvbexxp p {
+  margin: 0;
+  padding: 0;
+}
+
+#lhjbvbexxp .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#lhjbvbexxp .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#lhjbvbexxp .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#lhjbvbexxp .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#lhjbvbexxp .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#lhjbvbexxp .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#lhjbvbexxp .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#lhjbvbexxp .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#lhjbvbexxp .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#lhjbvbexxp .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#lhjbvbexxp .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#lhjbvbexxp .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#lhjbvbexxp .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#lhjbvbexxp .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#lhjbvbexxp .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#lhjbvbexxp .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#lhjbvbexxp .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#lhjbvbexxp .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#lhjbvbexxp .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#lhjbvbexxp .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#lhjbvbexxp .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#lhjbvbexxp .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#lhjbvbexxp .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#lhjbvbexxp .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#lhjbvbexxp .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#lhjbvbexxp .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#lhjbvbexxp .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#lhjbvbexxp .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#lhjbvbexxp .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#lhjbvbexxp .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#lhjbvbexxp .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#lhjbvbexxp .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#lhjbvbexxp .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#lhjbvbexxp .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#lhjbvbexxp .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#lhjbvbexxp .gt_left {
+  text-align: left;
+}
+
+#lhjbvbexxp .gt_center {
+  text-align: center;
+}
+
+#lhjbvbexxp .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#lhjbvbexxp .gt_font_normal {
+  font-weight: normal;
+}
+
+#lhjbvbexxp .gt_font_bold {
+  font-weight: bold;
+}
+
+#lhjbvbexxp .gt_font_italic {
+  font-style: italic;
+}
+
+#lhjbvbexxp .gt_super {
+  font-size: 65%;
+}
+
+#lhjbvbexxp .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#lhjbvbexxp .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#lhjbvbexxp .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#lhjbvbexxp .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#lhjbvbexxp .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#lhjbvbexxp .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#lhjbvbexxp .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#lhjbvbexxp .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#lhjbvbexxp div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+
+<table class="gt_table caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="a-" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col"></th>
+<th id="a(1)" class="gt_col_heading gt_columns_bottom_border gt_center" data-quarto-table-cell-role="th" scope="col">(1)</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">b_Z_Intercept</td>
+<td class="gt_row gt_center" headers="(1)">0.108</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" "></td>
+<td class="gt_row gt_center" headers="(1)">[-0.315, 0.496]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">b_Z_X</td>
+<td class="gt_row gt_center" headers="(1)">2.922</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" "></td>
+<td class="gt_row gt_center" headers="(1)">[2.195, 3.531]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">sigma_Z</td>
+<td class="gt_row gt_center" headers="(1)">0.990</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" "></td>
+<td class="gt_row gt_center" headers="(1)">[0.882, 1.139]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">b_outcome_Intercept</td>
+<td class="gt_row gt_center" headers="(1)">0.039</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" "></td>
+<td class="gt_row gt_center" headers="(1)">[-0.767, 0.731]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">b_outcome_X</td>
+<td class="gt_row gt_center" headers="(1)">-0.873</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" "></td>
+<td class="gt_row gt_center" headers="(1)">[-2.578, 0.814]</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers=" ">b_outcome_Z</td>
+<td class="gt_row gt_center" headers="(1)">2.034</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers=" "></td>
+<td class="gt_row gt_center" headers="(1)">[1.432, 2.729]</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>To estimate the indirect effect of <code>X</code> on <code>outcome</code> that is mediated by <code>Z</code>, we can use the package <code>bayestestR</code>:</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>bayestestR<span class="sc">::</span><span class="fu">mediation</span>(fit_multivariate)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # Causal Mediation Analysis for Stan Model</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Treatment: X</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Mediator : Z</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Response : outcome</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Effect                 | Estimate |         95% ETI</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ---------------------------------------------------</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Direct Effect (ADE)    |   -0.873 | [-2.578, 0.814]</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Indirect Effect (ACME) |    5.912 | [ 3.890, 8.608]</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Mediator Effect        |    2.034 | [ 1.432, 2.729]</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Total Effect           |    5.037 | [ 3.148, 7.619]</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Proportion mediated: 117.36% [76.87%, 157.86%]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Because the effect of <code>Z</code> on the outcome is positive, and <code>X</code> has a positive direct (unmediated effect) on the outcome, the total effect of <code>X</code> on the outcome is larger than the direct effect of <code>X</code> without considering mediation.</p>
+</section>
+<section id="understanding-clusteringpolarization-of-respondents" class="level1">
+<h1>Understanding Clustering/Polarization of Respondents</h1>
+<p>As I explain in the paper, one of the main advantages of using a Beta regression model is its ability to model the dispersion among respondents not just in terms of variance (i.e.&nbsp;heteroskedasticity) but also the shape of dispersion, whether it is U or inverted-U shaped. Conceptually, a U shape would imply that respondents are bipolar, moving towards the extremes. An inverted-U shape would imply that respondents tend to cluster around a central value. We can predict these responses conditionally in the sample by adding predictors for <code>phi</code>, the scale/dispersion parameter in the Beta distribution. Higher values of <code>phi</code> imply a uni-modal distribution clustered around a central value, with increasing <code>phi</code> implying more clustering. Lower values of <code>phi</code> imply a bi-modal distribution with values at the extremes. Notably, these effects are calculated independently of the expected value, or mean, of the distribution, so values of <code>phi</code> will produce different shapes depending on the average value.</p>
+<p>The one change we need to make to fit this model is to add a formula predicting <code>phi</code> in the code below. Because we now have two formulas–one for the mean and one for dispersion–I use the <code>bf</code> function to indicate these two sub-models. I also need to specify <code>phi_reg</code> to be TRUE because some of the priors will change.</p>
+<p>Because there is no need to model the mean, I leave the first formula as <code>therm ~ 1</code> with the 1 representing only an intercept, not a covariate. I then specify a separate model for <code>phi</code> with an interaction between <code>age</code> and <code>sex</code> to see if these covariates are associated with dispersion. I set <code>phi_reg</code> to <code>"only"</code> because I am only including covariates for predicting <code>phi</code> instead of also <code>therm</code> (in which case I would want to set the option to <code>"both"</code>).</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(run_model) {</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  ord_fit_phi <span class="ot">&lt;-</span> <span class="fu">ordbetareg</span>(<span class="fu">bf</span>(therm <span class="sc">~</span> <span class="dv">1</span>, </span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                               phi <span class="sc">~</span> age <span class="sc">+</span> sex),</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>                            <span class="at">phi_reg =</span> <span class="st">"only"</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>                            <span class="at">data=</span>model_data,</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>                            <span class="at">cores=</span><span class="dv">2</span>,<span class="at">chains=</span><span class="dv">2</span>,<span class="at">iter=</span><span class="dv">500</span>,</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>                            <span class="at">refresh=</span><span class="dv">0</span>)</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># </span><span class="al">NOTE</span><span class="co">: to do parallel processing within chains</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># add the options below</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">#threads=threading(5),</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>  <span class="co">#backend="cmdstanr"</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>  <span class="co">#where threads is the number of cores per chain</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># you must have cmdstanr set up to do so</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># see https://mc-stan.org/cmdstanr/</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data</span>(<span class="st">"ord_fit_phi"</span>)</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can quickly examine the raw coefficients:</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ord_fit_phi)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Family: ord_beta_reg </span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Links: mu = identity; phi = log; cutzero = identity; cutone = identity </span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Formula: therm ~ 1 </span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          phi ~ age + sex</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    Data: data (Number of observations: 2535) </span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Draws: 2 chains, each with iter = 500; warmup = 250; thin = 1;</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          total post-warmup draws = 500</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Regression Coefficients:</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Intercept         0.31      0.02     0.27     0.36 1.00      508      376</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; phi_Intercept     0.99      0.09     0.83     1.14 1.00      255      419</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; phi_age30M49      0.05      0.09    -0.12     0.23 1.01      244      259</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; phi_age50M64     -0.04      0.09    -0.22     0.13 1.01      226      377</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; phi_age65P       -0.13      0.10    -0.33     0.06 1.01      281      360</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; phi_sexFemale     0.13      0.05     0.03     0.22 1.00      375      384</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Further Distributional Parameters:</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; cutzero    -2.70      0.10    -2.90    -2.51 1.00      406      336</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; cutone      1.67      0.02     1.63     1.72 1.00      361      374</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; and Tail_ESS are effective sample size measures, and Rhat is the potential</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; scale reduction factor on split chains (at convergence, Rhat = 1).</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>However, these are difficult to interpret as they relate to the Beta distribution, which is highly nonlinear. Generally speaking, higher values of <code>phi</code> mean the distribution is more concentrated around a single point. Lower values imply the distribution is more dispersed to the point that it actually becomes bi-modal, meaning that responses could be close to either 0 or 1 but are unlikely in the middle.</p>
+<p>Because <code>phi</code> is a dispersion parameter, by definition the covariates have no effect on the average value. As a result, we’ll need to use the <code>posterior_predict</code> function in <code>brms</code> if we want to get an idea what the covariates do. We don’t have any fancy packages to do this for us, so we’ll have to pass in two data frames, one with sex equal to female and one with sex equal to male. We’ll want each data frame to have each unique value of age in the data.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># we can use some dplyr functions to make this really easy</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>female_data <span class="ot">&lt;-</span> <span class="fu">distinct</span>(model_data, age) <span class="sc">%&gt;%</span> </span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">sex=</span><span class="st">"Female"</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>male_data <span class="ot">&lt;-</span> <span class="fu">distinct</span>(model_data, age) <span class="sc">%&gt;%</span> </span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">sex=</span><span class="st">"Male"</span>)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>to_predict <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(female_data,</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>                        male_data) <span class="sc">%&gt;%</span> </span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(age))</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>pred_post <span class="ot">&lt;-</span> <span class="fu">posterior_predict</span>(ord_fit_phi,</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>                               <span class="at">newdata=</span>to_predict)</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a><span class="co"># better with iterations as rows</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>pred_post <span class="ot">&lt;-</span> <span class="fu">t</span>(pred_post)</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(pred_post) <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(pred_post)</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a><span class="co"># need to convert to a data frame</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>data_pred <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(pred_post) <span class="sc">%&gt;%</span> </span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">sex=</span>to_predict<span class="sc">$</span>sex,</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>         <span class="at">age=</span>to_predict<span class="sc">$</span>age) <span class="sc">%&gt;%</span> </span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gather</span>(<span class="at">key=</span><span class="st">"iter"</span>,<span class="at">value=</span><span class="st">'estimate'</span>,<span class="sc">-</span>sex,<span class="sc">-</span>age)</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>data_pred <span class="sc">%&gt;%</span> </span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>estimate)) <span class="sc">+</span></span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="fu">aes</span>(<span class="at">fill=</span>sex),<span class="at">alpha=</span><span class="fl">0.5</span>,<span class="at">colour=</span><span class="cn">NA</span>) <span class="sc">+</span></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_d</span>() <span class="sc">+</span></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">panel.background =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid=</span><span class="fu">element_blank</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="package_introduction_files/figure-html/plot_phi_sim-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We can see that the female distribution is more clustered around a central value – 0.75 – than are men, who are somewhat more likely to be near the extremes of the data. However, the movement is modest, as the value of the coefficient suggests. Regression on <code>phi</code> is useful when examining polarizing versus clustering dynamics in the data.</p>
+</section>
+<section id="power-analysis-via-simulation" class="level1">
+<h1>Power Analysis Via Simulation</h1>
+<p>Finally, we can also simulate data from the ordered beta regression model with the <code>sim_ordbeta</code> function. This is useful either for examining how different parameters interact with each other, or more generally for power calculation by iterating over different possible sample sizes. I demonstrate the function here, though note that the vignette loads saved simulation results unless <code>run_model</code> is set to TRUE. Because each simulation draw has to estimate a model, it can take some time to do calculations. Using multiple cores a la the <code>cores</code> option is strongly encouraged to reduce processing time.</p>
+<p>To access the data simulated for each run, the <code>return_data=TRUE</code> option can be set. To get a single simulated dataset, simply use this option combined with a single iteration and set of parameter values. The data are saved as a list in the column <code>data</code> in the returned data frame. The chunk below examines the first 10 rows of a single simulated dataset (note that the rows are repeated <code>k</code> times for each iteration, while there is one unique simulated dataset per iteration). Each predictor is listed as a <code>Var</code> column from 1 to <code>k</code>, while the simulated outcome is in the <code>outcome</code> column.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co"># NOT RUN IN THE VIGNETTE</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>single_data <span class="ot">&lt;-</span> <span class="fu">sim_ordbeta</span>(<span class="at">N=</span><span class="dv">100</span>,<span class="at">iter=</span><span class="dv">1</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                           <span class="at">return_data=</span>T)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co"># examine the first dataset</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">head</span>(single_data<span class="sc">$</span>data[[<span class="dv">1</span>]]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>By default, the function simulates continuous predictors. To simulate binary variables, such as in a standard experimental design, use the <code>beta_type</code> function to specify <code>"binary"</code> predictors and <code>treat_assign</code> to determine the proportion assigned to treatment for each predictor. For a standard design with only one treatment variable, we’ll also specify that <code>k=1</code> for a single covariate. Finally, to estimate a reasonable treatment effect, we will specify that <code>beta_coef=0.5</code>, which equals an increase of .5 on the logit scale. While it can be tricky to know a priori what the marginal effect will be (i.e., the actual change in the outcome), the function will calculate marginal effects and report them, so you can play with other options to see what gets you marginal effects/treatment effects of interest.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(run_model) {</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  sim_data <span class="ot">&lt;-</span> <span class="fu">sim_ordbeta</span>(<span class="at">N=</span><span class="fu">c</span>(<span class="dv">250</span>,<span class="dv">500</span>,<span class="dv">750</span>),</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>                          <span class="at">k=</span><span class="dv">1</span>,</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>                          <span class="at">beta_coef =</span> .<span class="dv">5</span>,</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>                          <span class="at">iter=</span><span class="dv">100</span>,<span class="at">cores=</span><span class="dv">10</span>,</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>                          <span class="at">beta_type=</span><span class="st">"binary"</span>,</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>                          <span class="at">treat_assign=</span><span class="fl">0.3</span>)</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data</span>(<span class="st">"sim_data"</span>)</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>For example, in the simulation above, the returned data frame stores the true marginal effect in the <code>marg_eff</code> column, and lists it as 0.284, which is quite a large effect for a <span class="math inline">\([0,1]\)</span> outcome. The following plot shows some of the summary statistics derived by aggregating over the iterations of the simulation. Some of the notable statistics that are included are power (for all covariates <span class="math inline">\(k\)</span>), S errors (wrong sign of the estimated effect) and M errors (magnitude of bias). As can be seen, issues of bias decline markedly for this treatment effect size and a sample of 500 or greater has more than enough power.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>sim_data <span class="sc">%&gt;%</span> </span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="st">`</span><span class="at">Proportion S Errors</span><span class="st">`</span><span class="ot">=</span><span class="st">"s_err"</span>,N,<span class="at">Power=</span><span class="st">"power"</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">M Errors</span><span class="st">`</span><span class="ot">=</span><span class="st">"m_err"</span>,<span class="at">Variance=</span><span class="st">"var_marg"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gather</span>(<span class="at">key =</span> <span class="st">"type"</span>,<span class="at">value=</span><span class="st">"estimate"</span>,<span class="sc">-</span>N) <span class="sc">%&gt;%</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">y=</span>estimate,<span class="at">x=</span>N)) <span class="sc">+</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="co">#geom_point(aes(colour=model),alpha=0.1) +</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_summary</span>(<span class="at">fun.data=</span><span class="st">"mean_cl_boot"</span>) <span class="sc">+</span> </span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"N"</span>) <span class="sc">+</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks=</span><span class="fu">c</span>(<span class="dv">250</span>,<span class="dv">500</span>,<span class="dv">750</span>)) <span class="sc">+</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_viridis_d</span>() <span class="sc">+</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>type,<span class="at">scales=</span><span class="st">"free_y"</span>,<span class="at">ncol =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">caption=</span>stringr<span class="sc">::</span><span class="fu">str_wrap</span>(<span class="st">"Summary statistics calculated as mean with bootstrapped confidence interval from simulation draws. M Errors  and S errors are magnitude of bias (+1 equals no bias) and incorrect sign of the estimated marginal effect respectively. Variance refers to estimated posterior variance (uncertainty) of the marginal effect(s)."</span>,<span class="at">width=</span><span class="dv">50</span>)) <span class="sc">+</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">color=</span><span class="fu">guide_legend</span>(<span class="at">title=</span><span class="st">""</span>),</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>         <span class="at">linetype=</span><span class="fu">guide_legend</span>(<span class="at">title=</span><span class="st">""</span>)) <span class="sc">+</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.caption =</span> <span class="fu">element_text</span>(<span class="at">size=</span><span class="dv">7</span>),</span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text.x=</span><span class="fu">element_text</span>(<span class="at">size=</span><span class="dv">8</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="package_introduction_files/figure-html/sim_plot-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>While the <code>sim_ordbeta</code> function has the ability to iterate over <code>N</code>, it is of course possible to do more complex experiments by wrapping the function in a loop and passing different values of other parameters, such as <code>treat_assign</code>.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
