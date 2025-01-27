@@ -44,5 +44,6 @@ Suggests:
     mice,
     bayestestR,
     gganimate,
-    transformr
+    transformr,
+    DeclareDesign
 VignetteBuilder: knitr
