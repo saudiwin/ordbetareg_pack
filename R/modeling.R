@@ -578,7 +578,7 @@ ordbetareg <- function(formula=NULL,
 
     class(out_obj) <- c(class(out_obj),"ordbetareg")
 
-    if(length(dv)==1) {
+    if(length(dv)==1 && ! use_brm_multiple) {
 
       out_obj$upper_bound <- attr(data[[dv_pos]],'upper_bound')
       out_obj$lower_bound <- attr(data[[dv_pos]],'lower_bound')
@@ -587,13 +587,46 @@ ordbetareg <- function(formula=NULL,
 
       # multivariate adjustment necessary
 
-      out_obj$upper_bound <- lapply(dv_pos, function(c) {
-        return(attr(data[[c]], 'upper_bound'))
-      })
+      if(use_brm_multiple) {
 
-      out_obj$lower_bound <- lapply(dv_pos, function(c) {
-        return(attr(data[[c]], 'lower_bound'))
-      })
+        if(length(dv)==1) {
+
+          # one DV, multiple datasets
+
+          out_obj$upper_bound <- attr(data[[1]][[dv_pos]],'upper_bound')
+          out_obj$lower_bound <- attr(data[[1]][[dv_pos]],'lower_bound')
+
+
+        } else {
+
+          # multiple DVs, multiple datasets
+
+          out_obj$upper_bound <- lapply(dv_pos, function(c) {
+            return(attr(data[[1]][[c]], 'upper_bound'))
+          })
+
+          out_obj$lower_bound <- lapply(dv_pos, function(c) {
+            return(attr(data[[1]][[c]], 'lower_bound'))
+          })
+
+
+        }
+
+      } else {
+
+        # just multiple DVs, not multiple datasets
+
+        out_obj$upper_bound <- lapply(dv_pos, function(c) {
+          return(attr(data[[c]], 'upper_bound'))
+        })
+
+        out_obj$lower_bound <- lapply(dv_pos, function(c) {
+          return(attr(data[[c]], 'lower_bound'))
+        })
+
+      }
+
+
 
     }
 
@@ -664,7 +697,7 @@ ordbetareg <- function(formula=NULL,
 
   ord_beta_reg <- custom_family("ord_beta_reg",
                                 dpars=c("mu","phi","cutzero","cutone"),
-                                links=c("identity","log",NA,NA),
+                                links=c("identity","log","identity","identity"),
                                 lb=c(NA,0,NA,NA),
                                 type="real")
 
