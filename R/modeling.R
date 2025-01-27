@@ -44,8 +44,7 @@
 #'
 #' @param formula Either an R formula in the form response/DV ~ var1 + var2
 #'   etc. *or* formula object as created/called by the `brms`
-#'   [brms::bf] function. *Please avoid using 0 or `Intercept` in the
-#'   formula definition.
+#'   [brms::bf] function.
 #' @param data An R data frame or tibble containing the variables in the formula
 #' @param true_bounds If the true bounds of the outcome/response
 #'   don't exist in the data, pass a length 2 numeric vector
@@ -121,6 +120,11 @@
 #'  regression coefficient, added to the outcome regression by passing one of the `brms`
 #'  functions [brms::set_prior] or [brms::prior_string] with appropriate
 #'  values.
+#' @param manual_prior If you want to set your own custom priors with `brms`,
+#' use this option to pass any valid `brms` priors such as those created with
+#' [brms::set_prior] or [brms::prior_string]. Note that this option replaces
+#' any other priors set. Useful especially when doing something unorthodox
+#' like modeling cutpoints.
 #' @param init This parameter is used to determine starting values for
 #'   the Stan sampler to begin Markov Chain Monte Carlo sampling. It is
 #'   set by default at 0 because the non-linear nature of beta regression
@@ -191,6 +195,7 @@ ordbetareg <- function(formula=NULL,
                        phi_intercept_prior_mean=NULL,
                        phi_intercept_prior_SD=NULL,
                        extra_prior=NULL,
+                       manual_prior=NULL,
                        init ="0",
                        return_stancode=FALSE,
                        ...) {
@@ -482,7 +487,8 @@ ordbetareg <- function(formula=NULL,
                                   phi_prior=phi_prior,
                                   extra_prior=extra_prior,
                                   suffix=suffix,
-                                  formula=formula)
+                                  formula=formula,
+                                  manual_prior=manual_prior)
 
   if('mvbrmsformula' %in% class(formula)) {
     # update formula objects with model families if they
@@ -690,6 +696,7 @@ ordbetareg <- function(formula=NULL,
                              dirichlet_prior_num=NULL,
                              phi_prior=NULL,
                              extra_prior=NULL,
+                             manual_prior=NULL,
                              suffix="",
                              formula=NULL) {
 
@@ -1035,6 +1042,10 @@ ordbetareg <- function(formula=NULL,
     }
 
   }
+
+  # for people who want to roll their own
+
+  if(!is.null(manual_prior)) priors <- manual_prior
 
   return(list(priors=priors,
               stanvars=stanvars,
