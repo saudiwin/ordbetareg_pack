@@ -1,6 +1,12 @@
 # Ordered Beta Regression
 
 
+This website contains information about the R package `ordbetareg` and
+general information about other implementations of the ordered beta
+regression model in other statistical packages. If you just want to get
+started with the R package `ordbetareg`, see the
+[vignette](vignettes/package_introduction.html).
+
 ## About the Model
 
 Proportion data–percentiles, slider scales, visual-analog scales–have
