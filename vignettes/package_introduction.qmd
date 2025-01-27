@@ -9,6 +9,7 @@ vignette: >
   %\VignetteIndexEntry{package_introduction}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+toc: true
 ---
 
 ```{r setup, include = FALSE}
@@ -48,17 +49,33 @@ set.seed(628871)
 
 The ordered beta regression model is designed explicitly for data with upper and lower bounds, such as survey slider scales, dose/response relationships, and anything that can be considered a proportion or a percentage. This type of data cannot be fit with the standard beta regression model because the beta distribution does not allow for any observations at the bounds, such as a percentage/proportion of 0% or 100%. The ordered beta regression model solves this problem by combining the beta distribution with an ordinal distribution over continuous and discrete, or degenerate, observations at the bounds. It is an efficient model that produces intelligible estimates that also respect the bounds of the dependent variable.
 
-**Please note that this is not the only implementation of ordered beta regression. For more info on alternatives, including other statistical software packages, see the package website.**
+**Please note that this is not the only implementation of ordered beta regression. For more info on alternatives, including other statistical software packages like Python or Julia, see the [package website](https://saudiwin.github.io/ordbetareg_pack/).**
 
-For more information, I refer you to my [paper on the model](https://www.cambridge.org/core/journals/political-analysis/article/ordered-beta-regression-a-parsimonious-wellfitting-model-for-continuous-data-with-lower-and-upper-bounds/89F4141DA16D4FC217809B5EB45EEE83) for more details (also there is an ungated version available [here](https://osf.io/preprints/socarxiv/2sx6y/)).
+This vignette covers a number of topics, from data preparation ([Data Preparation]), fitting a model ([Run In ordbetareg]), visualizing results ([Visualization]), interpreting results ([How to Report Results]), using multiple imputed datasets ([Multivariate and Missing Data]), performing mediation analysis ([Multivariate Modeling and Mediation Analysis]), modeling ancillary parameters like dispersion and cutpoints ([Modeling Dispersion and Cutpoints]), and power analysis for experimental designs ([Power Analysis]).
+
+For more information about the ordered beta statistical distribution, I refer you to my [paper on the model](https://www.cambridge.org/core/journals/political-analysis/article/ordered-beta-regression-a-parsimonious-wellfitting-model-for-continuous-data-with-lower-and-upper-bounds/89F4141DA16D4FC217809B5EB45EEE83) for more details (also there is an ungated version available [here](https://osf.io/preprints/socarxiv/2sx6y/)).
+
+## Support ordbetareg
+
+If you've enjoyed using the package, consider buying some `ordbetareg` swag! Click the image below to go to the online store (I receive a few dollars from each order).
+
+::: {layout-ncol="2"}
+[![](screen1.png){fig-align="center" width="2in"}](https://rmk-designs.printify.me/product/15852280/this-is-not-normal-ordbetareg-t-shirt)
+
+[![](screen2.png){fig-align="center" width="2in"}](https://rmk-designs.printify.me/product/15852502/this-is-not-normal-ordbetareg-coffee-mug)
+:::
+
+## `ordbetareg` and `brms`
 
 This notebook contains instructions for running the ordered beta regression model in the R package `ordbetareg`. `ordbetareg` is a front-end to `brms`, a very powerful regression modeling package based on the [Stan Hamiltonian Markov Chain Monte Carlo](https://mc-stan.org/) sampler. I only show in this vignette a small part of the features which are available via `brms`, and I refer the user to the [copious documentation describing the features of the brms package](https://paul-buerkner.github.io/brms/). Suffice it to say that most kinds of regression models can be fit with the software, including hierarchical, dynamic, nonlinear and multivariate models (or all of the above in combination). The `ordbetareg` package allows for all of these features to be used with the ordered regression model distribution by adding this distribution to `brms`.
+
+## Citation
 
 The reproducible Quarto file this vignette is compiled from can be accessed from [the package Github site](https://github.com/saudiwin/ordbetareg_pack/blob/master/vignettes/package_introduction.qmd).
 
 If you use the model in a paper, please cite it as:
 
-Kubinec, Robert. "Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds." *Political Analysis.* 2022. Forthcoming.
+Kubinec, Robert. 2023. “Ordered Beta Regression: A Parsimonious, Well-Fitting Model for Continuous Data with Lower and Upper Bounds.” *Political Analysis* 31(4): 519–36. doi: 10.1017/pan.2022.20.
 
 ```{r runmod}
 
@@ -126,9 +143,15 @@ The completed dataset has `r nrow(model_data)` observations.
 
 The `ordbetareg` function will take care of normalizing the outcome and adding additional information necessary to estimate the distribution. Any additional arguments can be passed to the underlying `brm` function to use specific `brm` features. For example, in the code below I use the `backend="cmdstanr"` argument to `brm()`, which allows me to use the R package `cmdstanr` for estimating models. `cmdstanr` tends to have the most up to date version of Stan, though you must [install it yourself](https://mc-stan.org/cmdstanr/).
 
-What you need to pass to the `ordbetareg` function are the standard components of any R model: a formula and a dataset that has all the variables mentioned in the formula. There are additional parameters that allow you to modify the priors, such as for the dispersion parameter `phi`. While in most cases these priors are sensible defaults, if you have data with an unusual scale (such as very large or very small values), you may want to change the priors to ensure they are not having an outsize effect on your estimates. If you want to assign a prior to specific regression coefficient or another part of the model, you can use the `extra_prior` option and pass a `brms`-compliant prior object.
+What you need to pass to the `ordbetareg` function are the standard components of any R model: a formula and a dataset that has all the variables mentioned in the formula.
 
-If you want to use some of `brms` more powerful techniques, such as multivariate modeling, you can also pass the result of a `bf` function call to the `formula` argument. I refer you to the `brmsformula()` [function help](https://paul-buerkner.github.io/brms/reference/brmsformula.html) for more details.
+## Multivariate and Missing Data
+
+If you want to use some of `brms` more powerful techniques, such as multivariate modeling, you can also pass the result of a `bf` function call to the `formula` argument. Doing so allows you to use mixed distributions, such as modeling one response as ordered beta and the other as normal/Gaussian. I refer you to the `brmsformula()` [function help](https://paul-buerkner.github.io/brms/reference/brmsformula.html) for more details.
+
+You can also make use of `brms` missing data imputation abilities if you pass a list of imputed datasets as a list and set the `use_brms_multiple` to `TRUE`. For more details on how to prepare data for `brms` multiple imputation, see <https://cran.r-project.org/web/packages/brms/vignettes/brms_missings.html>.
+
+## Example: Feeling Thermometer Towards Professors
 
 To demonstrate some of the power of using `brms` as a regression engine, I will model education and income as ordinal predictors by using the `mo()` function in the formula definition. By doing so, we can get a single effect for education and income instead of having to use dummies for separate education/income categories. As a result, I can include an interaction between the two variables to see if wealthier more educated people have better views towards college professors than poorer better educated people. Finally, I include varying (random) census region intercepts.
 
@@ -159,11 +182,13 @@ if(run_model) {
 
 Because this model is somewhat complicated with multiple ordinal factors and multilevel intercepts, I use the option `adapt_delta=0.95` to improve sampling and remove divergent transitions.
 
-## Changing priors
+## Priors
 
 The default priors in `ordbetareg` are weakly informative for data that is scaled roughly between $[-10,10]$. Outside of those scales, you may want to increase the SD of the Normal prior on regression coefficients via the `coef_prior_sd` and/or `phi_coef_prior_sd` options to `ordbetareg` (depending on whether the prior is for the coefficients in the main outcome model or the auxiliary dispersion `phi` regression). If you need to set a specific prior on the intercept, pass values to the `intercept_prior_mean`/`phi_intercept_prior_mean` and `intercept_prior_sd`/`phi_intercept_prior_sd` parameters (you need to have values for both for the prior to be set correctly) to set a Normally-distributed prior on the intercept. You can also zero out the intercept by setting a tight prior around 0, such as `intercept_prior_mean=0` and `intercept_prior_sd=0.001`.
 
-If you need to do something more involved with priors, you can use the `extra_prior` option. This argument can take any `brms`-specified prior, including any of the many `brms` options for priors. These options are beyond the scope of the vignette, but I refer the reader to the [`brms` documentation for more info](https://www.jstatsoft.org/article/view/v080i01).
+If you need to do something more involved with priors, you can use the `extra_prior` option. This argument can take any `brms`-specified prior, including any of the many `brms` options for priors. If you want to set your own priors and ignore all the prior-related arguments, you can also use the `manual_prior` option and again pass a `brms`-compliant prior object. This is necessary if you want to change the cutpoints or model the cutpoints directly, as I explain below.
+
+Setting manual/more specific priors are beyond the scope of the vignette, but I refer the reader to the [`brms` documentation for more info](https://www.jstatsoft.org/article/view/v080i01).
 
 # Post-Estimation
 
@@ -196,6 +221,8 @@ pew %>%
 
 The plot shows that the model sees significant heterogeneity between the discrete responses at the bounds and the continuous responses in the plot.
 
+## Posterior Predictive Plot
+
 The best way to visualize model fit is to plot the full predictive distribution relative to the original outcome. Because ordered beta regression is a mixed discrete/continuous model, a separate plotting function, `pp_check_ordbeta`, is included that accurately handles the unique features of this distribution. This function returns a list with two plots, `discrete` and `continuous`, which can either be printed and plotted or further modified as `ggplot2` objects.
 
 The discrete plot, which is a bar graph, shows that the posterior distribution accurately captures the number of different types of responses (discrete or continuous) in the data. For the continuous plot, shown as a density plot with one line per posterior draw, the model can't capture all of the modality in the distribution -- there are effectively four separate modes -- but it is reasonably accurate over the middle responses and the responses near the bounds.
@@ -217,9 +244,27 @@ plots$continuous
 
 The `pp_check_ordbeta` function can also show each posterior draw one at a time in an animated plot if the `animate` option is set to TRUE. This option requires the installation of the additional packages `gganimate` and `transformr`.
 
-## Coefficients and Marginal Effects Reporting
+## Heiss Plot
 
-We can see the coefficients from the model in table form using the `modelsummary` package, which has support for `brms` models. We'll specify only confidence intervals as other frequentist statistics have no Bayesian analogue (i.e. p-values). We'll also specify only the main effects of the ordinal predictors, and give them more informative names.
+`ordbetareg` also includes a plot derived by the statistician Andrew Heiss. This plot visualizes the three components of the outcome–the lower bound, the middle continuous part, and the upper bound–as a function of a factor/discrete variable. This plot is helpful at understanding how discrete variables might be affecting the responses at the bounds (i.e., extreme responses). Importantly, this plot shows uncertainty by plotting these predictions for a set number of posterior draws (be careful about using too many draws as it can slow down the plot quite a bit).
+
+Below is a Heiss plot for our example regression model by showing the predicted components of the outcome for each value of `education`:
+
+```{r plot_heiss}
+
+# turn off caption as it doesn't fit well in vignette mode
+
+plot_heiss(ord_fit_mean, grouping_fac="education", ndraws = 100,
+           plot_caption = "")
+```
+
+As can be seen, the plot allows for intuitive comparisons of the predicted values at the bounds of the scale across levels of a discrete predictor.
+
+## How to Report Results
+
+For many analyses, coefficient tables are quite valuable for reporting model results. I first show how to report the raw coefficients, although it is important to note that these coefficients are not all that interesting as they are on the logit scale (and no, you can't interpret them as log-odds or what have you). It is more interesting to report the [**marginal effects**], as I define below, and leave the raw coefficients in an appendix.
+
+We can see the raw coefficients from the model in table form using the `modelsummary` package, which has support for `brms` models. We'll specify only confidence intervals as other frequentist statistics have no Bayesian analogue (i.e. p-values). We'll also specify only the main effects of the ordinal predictors, and give them more informative names.
 
 ```{r coef_plot}
 
@@ -234,11 +279,15 @@ modelsummary(ord_fit_mean,statistic = "conf.int",
 
 ```
 
-`modelsummary` tables have many more options, including output to both html and latex formats. I refer the reader to the [package documentation](https://vincentarelbundock.github.io/modelsummary/articles/modelsummary.html) for more info.
+Note that this plot does not show the cut point coefficients or `phi` due to the use of the `coef_map` function. Removing that argument would output all coefficients. `modelsummary` tables have many more options, including output to both html and latex formats. I refer the reader to the [package documentation](https://vincentarelbundock.github.io/modelsummary/articles/modelsummary.html) for more info.
+
+As I mentioned earlier, you can interpret sign and significance from the raw coefficients, but substantively, you need marginal effects (see below).
 
 ### Marginal Effects
 
-There is a related package, `marginaleffects`, that allows us to convert these coefficients into more meaningful marginal effect estimates, i.e., the effect of the predictors expresses as the actual change in the outcome on the 0 - 1 scale. Because we have two variables in our model that are both ordinal in nature, `marginaleffects` will produce an estimate of the marginal effect of each value of each ordinal predictor. I use the `avg_slopes` function to convert the `ordbetareg` model to a data frame of marginal/conditional effects in the scale of the outcome that can be easily printed:
+There is a related package, `marginaleffects`, that allows us to convert these coefficients into more meaningful marginal effect estimates, i.e., the effect of the predictors expresses as the actual change in the outcome on the 0 - 1 scale. If those aren't the original bounds of your scale, you can convert the effects to any bounded scale as well (such as -5 and 78 or 1 and 100).
+
+Because we have two variables in our model that are both ordinal in nature, `marginaleffects` will produce an estimate of the marginal effect of each value of each ordinal predictor. I use the `avg_slopes` function to convert the `ordbetareg` model to a data frame of marginal/conditional effects in the scale of the outcome that can be easily printed:
 
 ```{r marg_effect}
 
@@ -255,7 +304,7 @@ avg_slopes(ord_fit_mean, variables="education") %>%
 
 We can see that we have separate marginal effects for each level of education due to modeling it as an ordinal predictor. At present the `avg_slopes()` function cannot calculate a single effect, though that is possible manually. As we can see with the raw coefficient in the table above, the marginal effects are all positive, though the magnitude varies across different levels of education.
 
-Note as well that the `slopes` function can calculate unit-level (row-wise) estimates of the predictors on the outcome (see `marginaleffects` documentation for more info).
+Note as well that the `slopes` function can calculate unit-level (row-wise) estimates of the predictors on the outcome (see `marginaleffects` [documentation](https://marginaleffects.com/) for more info).
 
 # Multiple Imputation
 
@@ -361,11 +410,15 @@ bayestestR::mediation(fit_multivariate)
 
 Because the effect of `Z` on the outcome is positive, and `X` has a positive direct (unmediated effect) on the outcome, the total effect of `X` on the outcome is larger than the direct effect of `X` without considering mediation.
 
-# Understanding Clustering/Polarization of Respondents
+# Modeling Dispersion and Cutpoints
+
+In this section I show how you can use `brms` distributional regression features to also model either the dispersion parameter `phi` or the `cutpoints` using covariates.
+
+### Modeling Dispersion (`phi`)
 
 As I explain in the paper, one of the main advantages of using a Beta regression model is its ability to model the dispersion among respondents not just in terms of variance (i.e. heteroskedasticity) but also the shape of dispersion, whether it is U or inverted-U shaped. Conceptually, a U shape would imply that respondents are bipolar, moving towards the extremes. An inverted-U shape would imply that respondents tend to cluster around a central value. We can predict these responses conditionally in the sample by adding predictors for `phi`, the scale/dispersion parameter in the Beta distribution. Higher values of `phi` imply a uni-modal distribution clustered around a central value, with increasing `phi` implying more clustering. Lower values of `phi` imply a bi-modal distribution with values at the extremes. Notably, these effects are calculated independently of the expected value, or mean, of the distribution, so values of `phi` will produce different shapes depending on the average value.
 
-The one change we need to make to fit this model is to add a formula predicting `phi` in the code below. Because we now have two formulas--one for the mean and one for dispersion--I use the `bf` function to indicate these two sub-models. I also need to specify `phi_reg` to be TRUE because some of the priors will change.
+The one change we need to make to fit this model is to add a formula predicting `phi` in the code below. Because we now have two formulas--one for the mean and one for dispersion--I use the `bf` function to indicate these two sub-models. I also need to specify `phi_reg` to be TRUE because some of the priors will change (or if you want to be adventurous, use the `manual_prior` option).
 
 Because there is no need to model the mean, I leave the first formula as `therm ~ 1` with the 1 representing only an intercept, not a covariate. I then specify a separate model for `phi` with an interaction between `age` and `sex` to see if these covariates are associated with dispersion. I set `phi_reg` to `"only"` because I am only including covariates for predicting `phi` instead of also `therm` (in which case I would want to set the option to `"both"`).
 
@@ -448,7 +501,36 @@ data_pred %>%
 
 We can see that the female distribution is more clustered around a central value -- 0.75 -- than are men, who are somewhat more likely to be near the extremes of the data. However, the movement is modest, as the value of the coefficient suggests. Regression on `phi` is useful when examining polarizing versus clustering dynamics in the data.
 
-# Power Analysis Via Simulation
+## Modeling Cutpoints
+
+You can also use `brms` distributional regression to have covariates that predict the location of the cutpoints. This type of regression would be useful if you want to see if there is variation in the heterogeneity of the scale (i.e., how extreme the bounds are) across levels of a factor. While this is likely only relevant for specific research questions, I include example code below for how to fit this model in case it is of interest. Note that the `manual_prior` option must be used to set priors on regression coefficients as otherwise the model will not have any priors on these coefficients and will not fit well.
+
+```{r cutprior_model}
+#| eval: false
+
+# we'll use our data, although we won't fit this model
+
+cutpoint_mod <- ordbetareg(formula=bf(therm ~ education +
+                               (1|region),
+                               cutzero ~ education,
+                               cutone ~ education),
+                       data=model_data,
+                       manual_prior=set_prior("normal(0,5)") +
+                    set_prior("normal(0,5)", class="b",dpar="cutone") +
+                    set_prior("normal(0,5)", class="b",dpar="cutzero"),
+                       control=list(adapt_delta=0.95),
+                cores=1,chains=1,iter=500,
+                refresh=0)
+
+```
+
+In the `brms` code above, `cutzero` is the bottom cutpoint and `cutone` is the top cut point, and they each receive their own formula in addition to the main formula for the response. These three formulas can be combined with the `bf` function as shown above. I also set loosely informative Normal priors on the regression coefficients for each of these three sub-models (note you must set explicit priors for both `cutzero` and `cutone`). These predictors will then appear in the `summary` function with `cutzero` or `cutone` appended to the name of the predictor (i.e. `education)`.
+
+# Power Analysis
+
+There are two ways of doing power analysis if you want to see the effect of a treatment on a proportion/percentage outcome. First is using the `sim_ordbeta` function that is a part of `ordbetareg`. This function is simple but useful so long as the experimental design isn't too complicated. For more robust designs, I also show how you can use the powerful [DeclareDesign](https://declaredesign.org/r/declaredesign/) package to model power analysis.
+
+## `sim_ordbeta` function
 
 Finally, we can also simulate data from the ordered beta regression model with the `sim_ordbeta` function. This is useful either for examining how different parameters interact with each other, or more generally for power calculation by iterating over different possible sample sizes. I demonstrate the function here, though note that the vignette loads saved simulation results unless `run_model` is set to TRUE. Because each simulation draw has to estimate a model, it can take some time to do calculations. Using multiple cores a la the `cores` option is strongly encouraged to reduce processing time.
 
@@ -515,3 +597,87 @@ sim_data %>%
 ```
 
 While the `sim_ordbeta` function has the ability to iterate over `N`, it is of course possible to do more complex experiments by wrapping the function in a loop and passing different values of other parameters, such as `treat_assign`.
+
+## More Powerful Power Analyses with `DeclareDesign`
+
+The ordered beta distribution can also be used in tandem with `DeclareDesign`, a robust R software package for power analysis (see [free online book here](https://book.declaredesign.org/)). To do so, we use a helper function around the R package `marginaleffects` to allow for `DeclareDesign` to calculate the effect of a treatment on a bounded 0-1 outcome. We also make use of the `ordbetareg` functionality of the `glmmTMB` package (https://github.com/glmmTMB/glmmTMB) as we need to fit many models very quickly. 
+
+You could also substitute the true `ordbetareg` function here, although that would require fitting many models with `brms` models. Of course, if you are using unique features in `brms` like missing data imputation or multivariate modeling, then you'll need to replace the `glmmTMB` code below with `ordbetareg::ordbetareg`.
+
+In the code below I use the ordered beta distribution function `rordbeta` to simulate $Y$ given an average response $mu$ and a dispersion parameter value for $phi$. I also have to pass cutpoints on the logit scale. 
+
+```{r}
+
+library(DeclareDesign)
+
+# helper function for glmmTMB ordbetareg fit
+
+tidy_avg_slopes <- function(x) {
+  tidy(avg_slopes(x))
+}
+
+# first, a simulated proportion using rordbeta (ordered beta distribution)
+# see https://osf.io/preprints/socarxiv/2sx6y
+# cutpoints = number of observations at the bound (i.e. 0 or 1)
+# phi = dispersion, a value of 1 means relatively "flat"
+
+design_rordbeta <-
+  declare_model(
+    N = 100,
+    potential_outcomes(Y ~ rordbeta(N, mu = .5 + .05*Z,phi = 1,
+                                    cutpoints=c(-3,3)
+    ))
+  ) +
+  declare_inquiry(ATE = 0.05) +
+  declare_assignment(Z = complete_ra(N, m = 50)) +
+  declare_measurement(Y = reveal_outcomes(Y ~ Z)) +
+  declare_estimator(Y ~ Z, .method = glmmTMB::glmmTMB, inquiry = "ATE",
+                    family=glmmTMB::ordbeta,
+                    .summary= tidy_avg_slopes,
+                    term="Z")
+
+```
+
+Note that the value for $mu$ must be strictly bounded between 0 and 1. You could use the logit link function (R function `plogis`) to allow for more sophisticated forms of linear models. `DeclareDesign` works best on the un-transformed (real) scale here, so I use a value for the ATE of 0.05 to ensure it stays within 0 and 1. I also include a separate predictor $Z$ with an effect of +0.05. 
+
+The `declare_estimator` function above is how we include `ordbetareg` as a model to test. As I mentioned, I pass the `glmmTMB` fitting function to `.method` as it uses conventional MLE and is much faster. Generally this works fine as power analysis doesn't need to have all the fancy features. If you need them, though, you could always pass in `ordbetareg::ordbetareg` to the `.method` argument. I also pass in the little helper function `tidy_avg_slopes` above (be sure to also load the `marginaleffects` package) to pull out treatment effects on the un-transformed (0 to 1) scale.
+
+With this code, you have a fully featured experimental design that can be further analyzed with `DeclareDesign`'s many options (again, see the book link above). To demonstrate usage, I include code below that compares using `ordbetareg` to model the outcome as a proportion versus dichotomizing the outcome by rounding to 0 or 1. The comparison shows that the latter method is biased relative to the true ATE effect (!!).
+
+Note that this code may take some time to run as uses simulation techniques to derive the power code. You can use the `future` package to parallelize over multiple cores to speed things up.
+
+```{r, eval=FALSE}
+
+# create two designs with identical treatment effects/expected values
+# first uses rordbeta to generate proportion in [0,1]
+# second uses rordbeta to generate proportion in [0,1], then
+# dichotomizes to 0 or 1 by rounding at 0.5
+# compare to see which has greater power given same number of obsevations
+# & check for bias
+
+# equivalent to dichotomizing (if a proportion)
+design_dichot <-
+  declare_model(
+    N = 100,
+    potential_outcomes(Y ~ as.numeric(rordbeta(N, mu = .5 + .05*Z,phi = 1,
+                                               cutpoints=c(-3,3))>0.5))
+  ) +
+  declare_inquiry(ATE = 0.05) +
+  declare_assignment(Z = complete_ra(N, m = 50)) +
+  declare_measurement(Y = reveal_outcomes(Y ~ Z)) +
+  declare_estimator(Y ~ Z, .method = lm_robust, inquiry = "ATE")
+
+# NB: DeclareDesign is using lm_robust as it's default estimation
+# However, it should be unbiased for the mean/expected value for the
+# binomial/dichotomized model
+
+diagnosands <-
+  declare_diagnosands(bias = mean(estimate - estimand),
+                      power = mean(p.value <= 0.05))
+
+# compare in terms of bias on the ATE & Power
+
+diagnose_design(design_rordbeta, diagnosands = diagnosands)
+diagnose_design(design_dichot, diagnosands = diagnosands)
+
+```
