@@ -11,6 +11,7 @@ plot_heiss(
   ndraws = NULL,
   show_category_perc_labels = TRUE,
   category_label_font_size = 3,
+  category_label_accuracy = 1,
   strip_text_font = element_text(face = "plain", size = 9),
   plot_title = "Predicted Proportions of Bounded Scale Components",
   plot_subtitle = paste0("By Unique Values of ", grouping_fac),
@@ -42,6 +43,11 @@ plot_heiss(
 
 \item{category_label_font_size}{The \code{ggplot2} font size for the labels on the
 scale components (if \code{show_category_perc_labels} is \code{TRUE}). Defaults to 3.}
+
+\item{category_label_accuracy}{The accuracy, or amount of rounding,
+for component label ranges on the plot (if \code{show_category_perc_labels} is \code{TRUE}).
+Default is 1. See \code{\link[scales:label_percent]{scales::label_percent()}} for more info on meaning of
+\code{accuracy} parameter.}
 
 \item{strip_text_font}{A \code{ggplot2::element_text} object defining the font style for facet strip text. Defaults to \code{element_text(face = "plain", size = 9)}.}
 

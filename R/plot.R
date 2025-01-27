@@ -453,6 +453,10 @@ pp_check_ordbeta <- function(model=NULL,
 #' @param show_category_perc_labels Logical. Whether to display category percentage labels on the plot. Defaults to `TRUE`.
 #' @param category_label_font_size The `ggplot2` font size for the labels on the
 #' scale components (if `show_category_perc_labels` is `TRUE`). Defaults to 3.
+#' @param category_label_accuracy The accuracy, or amount of rounding,
+#' for component label ranges on the plot (if `show_category_perc_labels` is `TRUE`).
+#' Default is 1. See [scales::label_percent()] for more info on meaning of
+#' `accuracy` parameter.
 #' @param strip_text_font A `ggplot2::element_text` object defining the font style for facet strip text. Defaults to `element_text(face = "plain", size = 9)`.
 #' @param plot_title Title of the plot. Defaults to "Predicted Proportions of Bounded Scale Components".
 #' @param plot_subtitle Subtitle of the plot. Defaults to a message indicating the grouping variable.
@@ -496,6 +500,7 @@ plot_heiss <- function(object,
                        ndraws=NULL,
                        show_category_perc_labels=TRUE,
                        category_label_font_size=3,
+                       category_label_accuracy=1,
                        strip_text_font=element_text(face="plain",size=9),
                        plot_title="Predicted Proportions of Bounded Scale Components",
                        plot_subtitle=paste0("By Unique Values of ",grouping_fac),
@@ -528,7 +533,7 @@ plot_heiss <- function(object,
 
   }
 
-  if(!is.null(recode_group_labels) && length(recode_group_labels) != levels(pull(grouping_fac_data, grouping_fac))) stop("If you pass a character vector of new grouping factor labels to recode_group_labels, this character vector must be of the same length as the number of levels/unique values in the grouping factor.")
+  if(!is.null(recode_group_labels) && length(recode_group_labels) != length(levels(pull(grouping_fac_data, grouping_fac)))) stop("If you pass a character vector of new grouping factor labels to recode_group_labels, this character vector must be of the same length as the number of levels/unique values in the grouping factor.")
 
   if(is.null(recode_group_labels)) recode_group_labels <- levels(pull(grouping_fac_data, grouping_fac))
 
@@ -601,10 +606,10 @@ plot_heiss <- function(object,
     group_by(grouping_fac) %>%
     mutate(y_plot = (y_agg / 2) + lag(cumsum(y_agg), default = 0)) %>%
     mutate(y_plot = 1 - y_plot) %>%
-    mutate(prop_nice = label_percent(accuracy = 1)(y_agg)) %>%
-    mutate(prop_ci_nice = paste0(label_number(accuracy = 1, scale = 100)(ymin),
+    mutate(prop_nice = label_percent(accuracy = category_label_accuracy)(y_agg)) %>%
+    mutate(prop_ci_nice = paste0(label_number(accuracy = category_label_accuracy, scale = 100)(ymin),
                                  "–",
-                                 label_percent(accuracy = 1)(ymax)))
+                                 label_percent(accuracy = category_label_accuracy)(ymax)))
 
   # resize plot caption
 
