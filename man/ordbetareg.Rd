@@ -21,6 +21,7 @@ ordbetareg(
   phi_intercept_prior_mean = NULL,
   phi_intercept_prior_SD = NULL,
   extra_prior = NULL,
+  manual_prior = NULL,
   init = "0",
   return_stancode = FALSE,
   ...
@@ -29,8 +30,7 @@ ordbetareg(
 \arguments{
 \item{formula}{Either an R formula in the form response/DV ~ var1 + var2
 etc. \emph{or} formula object as created/called by the \code{brms}
-\link[brms:brmsformula]{brms::bf} function. *Please avoid using 0 or \code{Intercept} in the
-formula definition.}
+\link[brms:brmsformula]{brms::bf} function.}
 
 \item{data}{An R data frame or tibble containing the variables in the formula}
 
@@ -121,6 +121,12 @@ receives the same prior SD as \code{phi_coef_prior_SD}.}
 regression coefficient, added to the outcome regression by passing one of the \code{brms}
 functions \link[brms:set_prior]{brms::set_prior} or \link[brms:set_prior]{brms::prior_string} with appropriate
 values.}
+
+\item{manual_prior}{If you want to set your own custom priors with \code{brms},
+use this option to pass any valid \code{brms} priors such as those created with
+\link[brms:set_prior]{brms::set_prior} or \link[brms:set_prior]{brms::prior_string}. Note that this option replaces
+any other priors set. Useful especially when doing something unorthodox
+like modeling cutpoints.}
 
 \item{init}{This parameter is used to determine starting values for
 the Stan sampler to begin Markov Chain Monte Carlo sampling. It is

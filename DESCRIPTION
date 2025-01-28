@@ -4,7 +4,7 @@ Title: Ordered Beta Regression Models with 'brms'
 Version: 0.8
 Authors@R: person(
   "Robert", "Kubinec",
-  email = "rmk7@nyu.edu",
+  email = "bobkubinec@gmail.com",
   role = c("aut", "cre"),
   comment = c(ORCID = "0000-0001-6655-4119"))
 Description: Implements ordered beta regression models, which are for modeling continuous variables with upper and lower bounds, such as

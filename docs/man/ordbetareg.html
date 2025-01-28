@@ -531,37 +531,79 @@ All other arguments passed on to the <code>brm</code> function
 <span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>      <span class="at">data=</span>model_data,</span>
 <span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">cores=</span><span class="dv">2</span>,<span class="at">chains=</span><span class="dv">2</span>)</span>
 <span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="co"># access values of the coefficients</span></span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ord_fit_mean)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>9
-educationHighschoolgraduate                626      900
-educationSomecollegenodegree               594      728
-educationAssociate’sdegree                 656      840
-educationCollegegraduateDsomepostgrad      596      736
-educationPostgraduate                      581      776
-educationDon’tknowDRefused                1096     1439
-income10tounder$20000                      484      455
-income20tounder$30000                      428      495
-income30tounder$40000                      444      619
-income40tounder$50000                      444      560
-income50tounder$75000                      425      350
-income75tounder$100000                     422      371
-income100tounder$150000OR                  418      316
-income$150000ormore                        427      555
-incomeVOLDontknowDRefused                  596      916
+<pre><code>Running /Library/Frameworks/R.framework/Resources/bin/R CMD SHLIB foo.c
+using C compiler: ‘Apple clang version 16.0.0 (clang-1600.0.26.3)’
+using SDK: ‘’
+clang -arch arm64 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG   -I"/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/Rcpp/include/"  -I"/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/RcppEigen/include/"  -I"/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/RcppEigen/include/unsupported"  -I"/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/BH/include" -I"/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/StanHeaders/include/src/"  -I"/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/StanHeaders/include/"  -I"/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/RcppParallel/include/"  -I"/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/rstan/include" -DEIGEN_NO_DEBUG  -DBOOST_DISABLE_ASSERTS  -DBOOST_PENDING_INTEGER_LOG2_HPP  -DSTAN_THREADS  -DUSE_STANC3 -DSTRICT_R_HEADERS  -DBOOST_PHOENIX_NO_VARIADIC_EXPRESSION  -D_HAS_AUTO_PTR_ETC=0  -include '/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/StanHeaders/include/stan/math/prim/fun/Eigen.hpp'  -D_REENTRANT -DRCPP_PARALLEL_USE_TBB=1   -I/opt/R/arm64/include    -fPIC  -falign-functions=64 -Wall -g -O2  -c foo.c -o foo.o
+In file included from &lt;built-in&gt;:1:
+In file included from /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/StanHeaders/include/stan/math/prim/fun/Eigen.hpp:22:
+In file included from /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/RcppEigen/include/Eigen/Dense:1:
+In file included from /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/RcppEigen/include/Eigen/Core:19:
+/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:679:10: fatal error: 'cmath' file not found
+  679 | #include &lt;cmath&gt;
+      |          ^~~~~~~
+1 error generated.
+make: *** [foo.o] Error 1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># access values of the coefficients</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ord_fit_mean)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> Family: ord_beta_reg 
+  Links: mu = identity; phi = identity; cutzero = identity; cutone = identity 
+Formula: therm ~ education + income + (1 | region) 
+   Data: data (Number of observations: 2525) 
+  Draws: 2 chains, each with iter = 2000; warmup = 1000; thin = 1;
+         total post-warmup draws = 2000
+
+Multilevel Hyperparameters:
+~region (Number of levels: 4) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     0.11      0.09     0.01     0.36 1.01      298      464
+
+Regression Coefficients:
+                                      Estimate Est.Error l-95% CI u-95% CI Rhat
+Intercept                                 0.32      0.16     0.02     0.63 1.01
+educationHighschoolgraduate              -0.19      0.14    -0.47     0.07 1.01
+educationSomecollegenodegree             -0.07      0.14    -0.34     0.21 1.00
+educationAssociate’sdegree               -0.03      0.14    -0.31     0.25 1.01
+educationCollegegraduateDsomepostgrad     0.23      0.14    -0.03     0.51 1.01
+educationPostgraduate                     0.53      0.14     0.25     0.82 1.00
+educationDon’tknowDRefused               -0.21      0.42    -0.98     0.63 1.01
+income10tounder$20000                    -0.09      0.13    -0.33     0.16 1.00
+income20tounder$30000                     0.09      0.12    -0.16     0.32 1.00
+income30tounder$40000                    -0.07      0.12    -0.33     0.16 1.00
+income40tounder$50000                    -0.14      0.12    -0.38     0.11 1.00
+income50tounder$75000                    -0.15      0.12    -0.38     0.07 1.00
+income75tounder$100000                   -0.26      0.11    -0.50    -0.04 1.00
+income100tounder$150000OR                -0.28      0.12    -0.50    -0.06 1.00
+income$150000ormore                      -0.26      0.12    -0.48    -0.02 1.00
+incomeVOLDontknowDRefused                -0.48      0.14    -0.76    -0.19 1.00
+                                      Bulk_ESS Tail_ESS
+Intercept                                  367      243
+educationHighschoolgraduate                533      907
+educationSomecollegenodegree               458      470
+educationAssociate’sdegree                 526      435
+educationCollegegraduateDsomepostgrad      479      544
+educationPostgraduate                      462      454
+educationDon’tknowDRefused                 690     1250
+income10tounder$20000                      631      809
+income20tounder$30000                      654      917
+income30tounder$40000                      523     1074
+income40tounder$50000                      571      991
+income50tounder$75000                      460      837
+income75tounder$100000                     495      774
+income100tounder$150000OR                  568      758
+income$150000ormore                        545      712
+incomeVOLDontknowDRefused                  579      954
 
 Further Distributional Parameters:
         Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-phi         2.96      0.08     2.81     3.13 1.00     1802     1216
-cutzero    -2.73      0.10    -2.93    -2.55 1.00     1300     1066
-cutone      1.68      0.02     1.64     1.72 1.00     1178     1384
+phi         2.96      0.08     2.77     3.12 1.01      379      144
+cutzero    -2.72      0.10    -2.92    -2.53 1.00      958     1073
+cutone      1.68      0.02     1.64     1.72 1.00      980     1019
 
 Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
 and Tail_ESS are effective sample size measures, and Rhat is the potential
