@@ -440,11 +440,13 @@ pp_check_ordbeta <- function(model=NULL,
 
 #' Heiss Plot for Predicted Proportions of Bounded Scale Components
 #'
-#' The Heiss plot, developed by the statistician Andrew Heiss, is a plot of the predicted proportions of components on a bounded scale that are grouped by the unique levels of a grouping variable or factor (such as a random effect) in the model. The plot excels at showing how the scale components--that is, the bottom, middle continuous, and top ends of the scale--vary with a discrete variable while also capturing posterior uncertainty. This plot was the winner of the 2023 ordbetareg Visualization Prize.
+#' The Heiss plot, developed by the statistician Andrew Heiss, is a plot of the predicted proportions of components on a bounded scale that are grouped by the unique levels of a grouping variable or factor (such as a random effect) in the model.
+#' The plot excels at showing how the scale components--that is, the bottom, middle continuous, and top ends of the scale--vary with a discrete variable while also capturing posterior uncertainty.
+#' This plot was the winner of the 2023 ordbetareg Visualization Prize.
 #'
 #' For more details of the plot, see:
 #'
-#' Heiss, Andrew and Ye, Meng. "Enforcing Boundaries: China’s Overseas NGO Law and Operational Constraints for Global Civil Society." Working Paper, 2023. <https://stats.andrewheiss.com/compassionate-clam/notebook/manuscript.html>.
+#' Heiss, Andrew and Ye, Meng. "Enforcing Boundaries: China's Overseas NGO Law and Operational Constraints for Global Civil Society." Working Paper, 2023. <https://stats.andrewheiss.com/compassionate-clam/notebook/manuscript.html>.
 #'
 #' @param object A fitted [ordbetareg()] model object.
 #' @param grouping_fac A character string indicating the name of the discrete column in the data used for grouping predictions. Must be a valid column name that was passed to [ordbetareg()].
@@ -460,7 +462,7 @@ pp_check_ordbeta <- function(model=NULL,
 #' @param strip_text_font A `ggplot2::element_text` object defining the font style for facet strip text. Defaults to `element_text(face = "plain", size = 9)`.
 #' @param plot_title Title of the plot. Defaults to "Predicted Proportions of Bounded Scale Components".
 #' @param plot_subtitle Subtitle of the plot. Defaults to a message indicating the grouping variable.
-#' @param plot_caption Caption text for the plot. Defaults to a detailed description of the plot contents.
+#' @param plot_caption Caption text for the plot. If NULL, the default, will use a detailed but static description of the plot contents.
 #' @param plot_caption_width Width (in characters) at which the caption is wrapped. Defaults to 60.
 #' @param calc_func A function used to calculate the central tendency of predictions. Defaults to `mean`.
 #' @param lb Lower bound for uncertainty intervals. Defaults to 0.05 (5th percentile).
@@ -490,7 +492,7 @@ pp_check_ordbeta <- function(model=NULL,
 #' @importFrom stringr str_wrap str_extract
 #' @importFrom tidyr gather unnest
 #' @importFrom scales label_percent label_number
-#' @importFrom tibble as_tibble
+#' @importFrom dplyr as_tibble
 #' @importFrom stats quantile
 #'
 #' @export
@@ -504,7 +506,7 @@ plot_heiss <- function(object,
                        strip_text_font=element_text(face="plain",size=9),
                        plot_title="Predicted Proportions of Bounded Scale Components",
                        plot_subtitle=paste0("By Unique Values of ",grouping_fac),
-                       plot_caption="Plot shows predicted proportions of the components of a bounded scale, i.e. the predicted (expected) probability of the top value of the scale, the intermediate continuous values, and the bottom value of the scale. The predictions are subset for unique values of a grouping factor. The predictions are shown for multiple posterior draws to indicate uncertainty. Labels on components indicate posterior quantiles for the probability of that component for each level of the grouping variable.",
+                       plot_caption=NULL,
                        plot_caption_width=70,
                        calc_func=mean,lb=.05,upb=.95,
                        plot_font_size=11,
@@ -532,6 +534,8 @@ plot_heiss <- function(object,
                                 grouping_fac = factor(grouping_fac))
 
   }
+
+  if(is.null(plot_caption)) plot_caption <- "Plot shows predicted proportions of the components of a bounded scale, i.e. the predicted (expected) probability of the top value of the scale, the intermediate continuous values, and the bottom value of the scale. The predictions are subset for unique values of a grouping factor. The predictions are shown for multiple posterior draws to indicate uncertainty. Labels on components indicate posterior quantiles for the probability of that component for each level of the grouping variable."
 
   if(!is.null(recode_group_labels) && length(recode_group_labels) != length(levels(pull(grouping_fac_data, grouping_fac)))) stop("If you pass a character vector of new grouping factor labels to recode_group_labels, this character vector must be of the same length as the number of levels/unique values in the grouping factor.")
 
@@ -608,7 +612,7 @@ plot_heiss <- function(object,
     mutate(y_plot = 1 - y_plot) %>%
     mutate(prop_nice = label_percent(accuracy = category_label_accuracy)(y_agg)) %>%
     mutate(prop_ci_nice = paste0(label_number(accuracy = category_label_accuracy, scale = 100)(ymin),
-                                 "–",
+                                 "-",
                                  label_percent(accuracy = category_label_accuracy)(ymax)))
 
   # resize plot caption

@@ -1064,13 +1064,11 @@ family_info <- function(x, y, ...) {
   UseMethod("family_info")
 }
 
-#' @export
 family_info.default <- function(x, y, ...) {
   x <- as.character(x)
   ulapply(x, .family_info, y = y, ...)
 }
 
-#' @export
 .family_info <- function(x, y, ...) {
   x <- as_one_character(x)
   y <- as_one_character(y)
@@ -1090,22 +1088,18 @@ family_info.default <- function(x, y, ...) {
   out
 }
 
-#' @export
 family_info.NULL <- function(x, y, ...) {
   NULL
 }
 
-#' @export
 family_info.list <- function(x, y, ...) {
   ulapply(x, family_info, y = y, ...)
 }
 
-#' @export
 family_info.family <- function(x, y, ...) {
   family_info(x$family, y = y, ...)
 }
 
-#' @export
 family_info.brmsfamily <- function(x, y, ...) {
   y <- as_one_character(y)
   out <- x[[y]]
@@ -1116,45 +1110,37 @@ family_info.brmsfamily <- function(x, y, ...) {
   out
 }
 
-#' @export
 family_info.mixfamily <- function(x, y, ...) {
   out <- lapply(x$mix, family_info, y = y, ...)
   combine_family_info(out, y = y)
 }
 
-#' @export
 family_info.brmsformula <- function(x, y, ...) {
   family_info(x$family, y = y, ...)
 }
 
-#' @export
 family_info.mvbrmsformula <- function(x, y, ...) {
   out <- lapply(x$forms, family_info, y = y, ...)
   combine_family_info(out, y = y)
 }
 
-#' @export
 family_info.brmsterms <- function(x, y, ...) {
   family_info(x$family, y = y, ...)
 }
 
-#' @export
 family_info.mvbrmsterms <- function(x, y, ...) {
   out <- lapply(x$terms, family_info, y = y, ...)
   combine_family_info(out, y = y)
 }
 
-#' @export
 family_info.btl <- function(x, y, ...) {
   family_info(x$family, y = y, ...)
 }
 
-#' @export
 family_info.btnl <- function(x, y, ...) {
   family_info(x$family, y = y, ...)
 }
 
-#' @export
 family_info.brmsfit <- function(x, y, ...) {
   family_info(x$formula, y = y, ...)
 }
@@ -1263,9 +1249,10 @@ family_info.brmsfit <- function(x, y, ...) {
 #'   summarize(mean_power=mean(power))
 #'
 #'
-#' @importFrom dplyr bind_rows mutate tibble slice as_tibble arrange group_by pull summarize %>% bind_cols
+#' @importFrom dplyr bind_rows mutate tibble slice as_tibble arrange group_by pull summarize %>% bind_cols lag
 #' @importFrom tidyr unchop
 #' @importFrom brms posterior_epred
+#' @importFrom stats median
 #' @export
 sim_ordbeta <- function(N=1000,k=5,
                         iter=1000,
@@ -1628,7 +1615,7 @@ contains_draws <- function(x) {
 }
 
 #' @export
-posterior_epred_ordbeta <- function(x,...) {
+posterior_epred_ordbeta <- function(object,...) {
   UseMethod("posterior_epred_ordbeta")
 }
 
@@ -1755,6 +1742,7 @@ get_predict.brmsfit <- function(model,
 #' and N is the number of observations.
 #' @aliases posterior_epred_ordbeta
 #' @method posterior_epred_ordbeta brmsfit
+#' @importFrom abind abind
 #' @examples
 #'
 #' data('ord_fit_mean')
