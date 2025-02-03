@@ -15,8 +15,7 @@ plot_heiss(
   strip_text_font = element_text(face = "plain", size = 9),
   plot_title = "Predicted Proportions of Bounded Scale Components",
   plot_subtitle = paste0("By Unique Values of ", grouping_fac),
-  plot_caption =
-    "Plot shows predicted proportions of the components of a bounded scale, i.e. the predicted (expected) probability of the top value of the scale, the intermediate continuous values, and the bottom value of the scale. The predictions are subset for unique values of a grouping factor. The predictions are shown for multiple posterior draws to indicate uncertainty. Labels on components indicate posterior quantiles for the probability of that component for each level of the grouping variable.",
+  plot_caption = NULL,
   plot_caption_width = 70,
   calc_func = mean,
   lb = 0.05,
@@ -55,7 +54,7 @@ Default is 1. See \code{\link[scales:label_percent]{scales::label_percent()}} fo
 
 \item{plot_subtitle}{Subtitle of the plot. Defaults to a message indicating the grouping variable.}
 
-\item{plot_caption}{Caption text for the plot. Defaults to a detailed description of the plot contents.}
+\item{plot_caption}{Caption text for the plot. If NULL, the default, will use a detailed but static description of the plot contents.}
 
 \item{plot_caption_width}{Width (in characters) at which the caption is wrapped. Defaults to 60.}
 
@@ -85,12 +84,14 @@ Default is 1. See \code{\link[scales:label_percent]{scales::label_percent()}} fo
 A \code{ggplot2} object representing the predicted proportions of the components.
 }
 \description{
-The Heiss plot, developed by the statistician Andrew Heiss, is a plot of the predicted proportions of components on a bounded scale that are grouped by the unique levels of a grouping variable or factor (such as a random effect) in the model. The plot excels at showing how the scale components--that is, the bottom, middle continuous, and top ends of the scale--vary with a discrete variable while also capturing posterior uncertainty. This plot was the winner of the 2023 ordbetareg Visualization Prize.
+The Heiss plot, developed by the statistician Andrew Heiss, is a plot of the predicted proportions of components on a bounded scale that are grouped by the unique levels of a grouping variable or factor (such as a random effect) in the model.
+The plot excels at showing how the scale components--that is, the bottom, middle continuous, and top ends of the scale--vary with a discrete variable while also capturing posterior uncertainty.
+This plot was the winner of the 2023 ordbetareg Visualization Prize.
 }
 \details{
 For more details of the plot, see:
 
-Heiss, Andrew and Ye, Meng. "Enforcing Boundaries: China’s Overseas NGO Law and Operational Constraints for Global Civil Society." Working Paper, 2023. \url{https://stats.andrewheiss.com/compassionate-clam/notebook/manuscript.html}.
+Heiss, Andrew and Ye, Meng. "Enforcing Boundaries: China's Overseas NGO Law and Operational Constraints for Global Civil Society." Working Paper, 2023. \url{https://stats.andrewheiss.com/compassionate-clam/notebook/manuscript.html}.
 }
 \examples{
 # Load a fitted model object and create a plot for

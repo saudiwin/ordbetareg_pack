@@ -28,15 +28,19 @@ Imports:
     ggplot2 (>= 3.4.0),
     tidyr,
     scales,
-    stringr
+    stringr,
+    abind,
+    checkmate,
+    insight,
+    rstantools
 Suggests: 
     rmarkdown,
+    quarto,
     knitr,
     gt,
     modelsummary (>= 1.4.1),
     marginaleffects (>= 0.10.0),
     haven,
-    stringr,
     Hmisc,
     collapse,
     ggthemes,
@@ -46,4 +50,5 @@ Suggests:
     gganimate,
     transformr,
     DeclareDesign
-VignetteBuilder: knitr
+VignetteBuilder: 
+    quarto

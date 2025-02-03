@@ -6,8 +6,8 @@ output:
   rmarkdown::html_vignette:
   toc: true
 vignette: >
-  %\VignetteIndexEntry{package_introduction}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Vignette's Title}
+  %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 toc: true
 ---
@@ -53,7 +53,7 @@ The ordered beta regression model is designed explicitly for data with upper and
 
 This vignette covers a number of topics, from data preparation ([Data Preparation]), fitting a model ([Run In ordbetareg]), visualizing results ([Visualization]), interpreting results ([How to Report Results]), using multiple imputed datasets ([Multivariate and Missing Data]), performing mediation analysis ([Multivariate Modeling and Mediation Analysis]), modeling ancillary parameters like dispersion and cutpoints ([Modeling Dispersion and Cutpoints]), and power analysis for experimental designs ([Power Analysis]).
 
-For more information about the ordered beta statistical distribution, I refer you to my [paper on the model](https://www.cambridge.org/core/journals/political-analysis/article/ordered-beta-regression-a-parsimonious-wellfitting-model-for-continuous-data-with-lower-and-upper-bounds/89F4141DA16D4FC217809B5EB45EEE83) for more details (also there is an ungated version available [here](https://osf.io/preprints/socarxiv/2sx6y/)).
+For more information about the ordered beta statistical distribution, I refer you to my [paper on the model](https://www.cambridge.org/core/journals/political-analysis/article/ordered-beta-regression-a-parsimonious-wellfitting-model-for-continuous-data-with-lower-and-upper-bounds/89F4141DA16D4FC217809B5EB45EEE83) for more details (also there is an ungated version available [here](https://doi.org/10.31235/osf.io/2sx6y)).
 
 ## Support ordbetareg
 
@@ -67,7 +67,7 @@ If you've enjoyed using the package, consider buying some `ordbetareg` swag! Cli
 
 ## `ordbetareg` and `brms`
 
-This notebook contains instructions for running the ordered beta regression model in the R package `ordbetareg`. `ordbetareg` is a front-end to `brms`, a very powerful regression modeling package based on the [Stan Hamiltonian Markov Chain Monte Carlo](https://mc-stan.org/) sampler. I only show in this vignette a small part of the features which are available via `brms`, and I refer the user to the [copious documentation describing the features of the brms package](https://paul-buerkner.github.io/brms/). Suffice it to say that most kinds of regression models can be fit with the software, including hierarchical, dynamic, nonlinear and multivariate models (or all of the above in combination). The `ordbetareg` package allows for all of these features to be used with the ordered regression model distribution by adding this distribution to `brms`.
+This notebook contains instructions for running the ordered beta regression model in the R package `ordbetareg`. `ordbetareg` is a front-end to `brms`, a very powerful regression modeling package based on the [Stan Hamiltonian Markov Chain Monte Carlo](https://mc-stan.org/) sampler. I only show in this vignette a small part of the features which are available via `brms`, and I refer the user to the [copious documentation describing the features of the brms package](http://paulbuerkner.com/brms/). Suffice it to say that most kinds of regression models can be fit with the software, including hierarchical, dynamic, nonlinear and multivariate models (or all of the above in combination). The `ordbetareg` package allows for all of these features to be used with the ordered regression model distribution by adding this distribution to `brms`.
 
 ## Citation
 
@@ -81,6 +81,14 @@ Kubinec, Robert. 2023. “Ordered Beta Regression: A Parsimonious, Well-Fitting 
 
 # whether to run models from scratch
 run_model <- F
+
+# number of iterations for sampling
+
+niters <- 200
+
+# number of warmup iterations
+
+nwarmup <- 100
 
 ```
 
@@ -147,9 +155,9 @@ What you need to pass to the `ordbetareg` function are the standard components o
 
 ## Multivariate and Missing Data
 
-If you want to use some of `brms` more powerful techniques, such as multivariate modeling, you can also pass the result of a `bf` function call to the `formula` argument. Doing so allows you to use mixed distributions, such as modeling one response as ordered beta and the other as normal/Gaussian. I refer you to the `brmsformula()` [function help](https://paul-buerkner.github.io/brms/reference/brmsformula.html) for more details.
+If you want to use some of `brms` more powerful techniques, such as multivariate modeling, you can also pass the result of a `bf` function call to the `formula` argument. Doing so allows you to use mixed distributions, such as modeling one response as ordered beta and the other as normal/Gaussian. I refer you to the `brmsformula()` [function help](http://paulbuerkner.com/brms/reference/brmsformula.html) for more details.
 
-You can also make use of `brms` missing data imputation abilities if you pass a list of imputed datasets as a list and set the `use_brms_multiple` to `TRUE`. For more details on how to prepare data for `brms` multiple imputation, see <https://cran.r-project.org/web/packages/brms/vignettes/brms_missings.html>.
+You can also make use of `brms` missing data imputation abilities if you pass a list of imputed datasets as a list and set the `use_brms_multiple` to `TRUE`. For more details on how to prepare data for `brms` multiple imputation, see <https://paulbuerkner.com/brms/articles/brms_missings.html>.
 
 ## Example: Feeling Thermometer Towards Professors
 
@@ -163,7 +171,7 @@ if(run_model) {
                                (1|region), 
                        data=model_data,
                        control=list(adapt_delta=0.95),
-                cores=1,chains=1,iter=500,
+                cores=1,chains=1,iter=niters,warmup=nwarmup,
                 refresh=0)
                 # NOTE: to do parallel processing within chains
                 # add the options below
@@ -244,6 +252,23 @@ plots$continuous
 
 The `pp_check_ordbeta` function can also show each posterior draw one at a time in an animated plot if the `animate` option is set to TRUE. This option requires the installation of the additional packages `gganimate` and `transformr`.
 
+## Probability of Components of the Scale
+
+It is also possible to obtain the predicted probabilities of the different parts of the outcome as probabilities using the `posterior_epred_ordbeta` function, which has an argument `component` that allows for predictions of the probability of the `"bottom"`, `"continuous"`, and `"top"` parts of the bounded response:
+
+```{r posterior_epred_ordbeta}
+
+# average probability of a respondent choosing either 0 or 100
+# i.e., the top and bottom components of the scale
+
+posterior_epred_ordbeta(ord_fit_mean,component = "top") %>% 
+  hist
+posterior_epred_ordbeta(ord_fit_mean,component = "bottom") %>% 
+  hist
+
+```
+
+
 ## Heiss Plot
 
 `ordbetareg` also includes a plot derived by the statistician Andrew Heiss. This plot visualizes the three components of the outcome–the lower bound, the middle continuous part, and the upper bound–as a function of a factor/discrete variable. This plot is helpful at understanding how discrete variables might be affecting the responses at the bounds (i.e., extreme responses). Importantly, this plot shows uncertainty by plotting these predictions for a set number of posterior draws (be careful about using too many draws as it can slow down the plot quite a bit).
@@ -279,7 +304,7 @@ modelsummary(ord_fit_mean,statistic = "conf.int",
 
 ```
 
-Note that this plot does not show the cut point coefficients or `phi` due to the use of the `coef_map` function. Removing that argument would output all coefficients. `modelsummary` tables have many more options, including output to both html and latex formats. I refer the reader to the [package documentation](https://vincentarelbundock.github.io/modelsummary/articles/modelsummary.html) for more info.
+Note that this plot does not show the cut point coefficients or `phi` due to the use of the `coef_map` function. Removing that argument would output all coefficients. `modelsummary` tables have many more options, including output to both html and latex formats. I refer the reader to the [package documentation](https://modelsummary.com/articles/modelsummary.html) for more info.
 
 As I mentioned earlier, you can interpret sign and significance from the raw coefficients, but substantively, you need marginal effects (see below).
 
@@ -310,9 +335,11 @@ Note as well that the `slopes` function can calculate unit-level (row-wise) esti
 
 `ordbetareg` supports `brms` functions for using multiple imputed datasets and for multivariate (multiple response) modeling, at least with two response variables. `brms` is able to apply the model to a list of multiple-imputed datasets (created with other packages such as `mice`) and then combine the resulting models into a single posterior distribution, which makes it very easy to do inference. I first demonstrate briefly how to do this and also multivariate modeling, but I refer the user to the `brms` documentation for more details.
 
-In the code below I use the `rordbeta` function to simulate some ordered beta responses given a covariate, then create missing values by replacing some values at random with `NA`. I use the `mice` package to impute this missing data, creating two imputed datasets which I then feed into `ordbetareg` and set the `use_brm_multiple` option to `TRUE`:
+In the code below I use the `rordbeta` function to simulate some ordered beta responses given a covariate, then create missing values by replacing some values at random with `NA`. I use the `mice` package to impute this missing data, creating two imputed datasets which I then feed into `ordbetareg` and set the `use_brm_multiple` option to `TRUE`.
 
-```{r mult_impute}
+Due to CRAN package size restrictions, this code is not run.
+
+```{r mult_impute,eval=run_model}
 
 # simplify things by using one covariate within the [0,1] interval
 
@@ -331,18 +358,11 @@ mult_impute <- mice::mice(data=tibble(outcome=outcome,
 
 # pass list to the data argument and set use_brm_multiple to TRUE
 
-if(run_model) {
-  
+
   fit_imputed <- ordbetareg(formula = outcome ~ X,
                             data=mult_impute,
                             use_brm_multiple = T,
-                            cores=1,chains=1, iter=500)
-  
-} else {
-  
-  data('fit_imputed')
-  
-}
+                            cores=1,chains=1, iter=niters,warmup=nwarmup)
 
 # all functions now work as though the model had only one dataset
 # imputation uncertainty included in all results/analyses
@@ -386,7 +406,7 @@ if(run_model) {
   fit_multivariate <- ordbetareg(formula=mod1 + mod2 + set_rescor(FALSE),
                                  data=tibble(outcome=outcome,
                                              X=X,Z=Z),
-                                 cores=1,chains=1, iter=500)
+                                 cores=1,chains=1, iter=niters,warmup=nwarmup)
   
 }
 
@@ -430,7 +450,7 @@ if(run_model) {
                                phi ~ age + sex),
                             phi_reg = "only",
                             data=model_data,
-                            cores=2,chains=2,iter=500,
+                            cores=2,chains=2,iter=niters,warmup=nwarmup,
                             refresh=0)
   # NOTE: to do parallel processing within chains
   # add the options below

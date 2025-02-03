@@ -5,3 +5,5 @@
 inst/doc
 altdoc/freeze.rds
 ^_quarto$
+/doc/
+/Meta/

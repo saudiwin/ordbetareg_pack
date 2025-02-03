@@ -33,7 +33,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Robert Kubinec \email{rmk7@nyu.edu} (\href{https://orcid.org/0000-0001-6655-4119}{ORCID})
+\strong{Maintainer}: Robert Kubinec \email{bobkubinec@gmail.com} (\href{https://orcid.org/0000-0001-6655-4119}{ORCID})
 
 }
 \keyword{internal}
