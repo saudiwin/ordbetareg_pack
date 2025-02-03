@@ -5,7 +5,7 @@ This website contains information about the R package `ordbetareg` and
 general information about other implementations of the ordered beta
 regression model in other statistical packages. If you just want to get
 started with the R package `ordbetareg`, see the
-[vignette](vignettes/package_introduction.html).
+[vignette](https://saudiwin.github.io/ordbetareg_pack/vignettes/package_introduction.html). The package website has further details on [other implementations of the model in other statistical software packages](https://saudiwin.github.io/ordbetareg_pack/).
 
 ## About the Model
 
