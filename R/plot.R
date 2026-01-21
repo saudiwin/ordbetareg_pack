@@ -438,15 +438,17 @@ pp_check_ordbeta <- function(model=NULL,
 }
 
 
-#' Heiss Plot for Predicted Proportions of Bounded Scale Components
+#' Heiss-Kurz Plot for Predicted Proportions of Bounded Scale Components
 #'
-#' The Heiss plot, developed by the statistician Andrew Heiss, is a plot of the predicted proportions of components on a bounded scale that are grouped by the unique levels of a grouping variable or factor (such as a random effect) in the model.
+#' The Heiss-Kurz plot, developed by the statistician Solomon Kurz and adapted to ordered beta regression by Andrew Heiss, is a plot of the predicted proportions of components on a bounded scale that are grouped by the unique levels of a grouping variable or factor (such as a random effect) in the model.
 #' The plot excels at showing how the scale components--that is, the bottom, middle continuous, and top ends of the scale--vary with a discrete variable while also capturing posterior uncertainty.
 #' This plot was the winner of the 2023 ordbetareg Visualization Prize.
 #'
 #' For more details of the plot, see:
 #'
 #' Heiss, Andrew and Ye, Meng. "Enforcing Boundaries: China's Overseas NGO Law and Operational Constraints for Global Civil Society." Working Paper, 2023. <https://stats.andrewheiss.com/compassionate-clam/notebook/manuscript.html>.
+#'
+#' Kurz, Solomon A. "Doing Bayesian Data Analysis in brms and the tidyverse." 2025. <https://bookdown.org/content/3686/>.
 #'
 #' @param object A fitted [ordbetareg()] model object.
 #' @param grouping_fac A character string indicating the name of the discrete column in the data used for grouping predictions. Must be a valid column name that was passed to [ordbetareg()].
@@ -483,7 +485,7 @@ pp_check_ordbeta <- function(model=NULL,
 #' #
 #' # data('ord_fit_mean')
 #' #
-#' # plot_heiss(ord_fit_mean,ndraws=100)
+#' # plot_hk(ord_fit_mean,ndraws=100)
 #' #
 #' # See introductory package vignette for more information on function options
 #'
@@ -496,7 +498,7 @@ pp_check_ordbeta <- function(model=NULL,
 #' @importFrom stats quantile
 #'
 #' @export
-plot_heiss <- function(object,
+plot_hk <- function(object,
                        grouping_fac=NULL,
                        recode_group_labels=NULL,
                        ndraws=NULL,

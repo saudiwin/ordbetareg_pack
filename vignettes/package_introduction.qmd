@@ -269,17 +269,17 @@ posterior_epred_ordbeta(ord_fit_mean,component = "bottom") %>%
 ```
 
 
-## Heiss Plot
+## Heiss-Kurz Plot
 
-`ordbetareg` also includes a plot derived by the statistician Andrew Heiss. This plot visualizes the three components of the outcome–the lower bound, the middle continuous part, and the upper bound–as a function of a factor/discrete variable. This plot is helpful at understanding how discrete variables might be affecting the responses at the bounds (i.e., extreme responses). Importantly, this plot shows uncertainty by plotting these predictions for a set number of posterior draws (be careful about using too many draws as it can slow down the plot quite a bit).
+`ordbetareg` also includes a plot derived by the statistician [Solomon Kurz](https://solomonkurz.netlify.app/blog/) and adapted for ordered beta regression by [Andrew Heiss](https://www.andrewheiss.com/). This plot visualizes the three components of the outcome–the lower bound, the middle continuous part, and the upper bound–as a function of a factor/discrete variable. This plot is helpful at understanding how discrete variables might be affecting the responses at the bounds (i.e., extreme responses). Importantly, this plot shows uncertainty by plotting these predictions for a set number of posterior draws (be careful about using too many draws as it can slow down the plot quite a bit).
 
 Below is a Heiss plot for our example regression model by showing the predicted components of the outcome for each value of `education`:
 
-```{r plot_heiss}
+```{r plot_hk}
 
 # turn off caption as it doesn't fit well in vignette mode
 
-plot_heiss(ord_fit_mean, grouping_fac="education", ndraws = 100,
+plot_hk(ord_fit_mean, grouping_fac="education", ndraws = 100,
            plot_caption = "")
 ```
 
