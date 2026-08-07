@@ -1,0 +1,649 @@
+---
+title: "Joint Hurdle Ordered Dirichlet Model"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+---
+
+## Goal
+
+We want a model that can generate all of the following outcomes:
+
+$$
+y_i=\mathbf{0},
+\qquad
+y_i\in \Delta^{K-1},
+\qquad
+y_{ik}=0,
+\qquad
+0<y_{ik}<1,
+\qquad
+y_{ik}=1.
+$$
+
+The aim is to build a coherent joint model where:
+
+1. the row may be all zeros,
+2. if the row is nonzero, only some components may be active,
+3. if multiple components are active, mass is allocated with a Dirichlet distribution,
+4. the hurdle, inclusion, and allocation processes all share the same latent index.
+
+---
+
+## Shared Latent Index
+
+For observation $i$ and component $k$, define a shared latent score:
+
+$$
+\theta_{ik}=x_i^\top\beta_k.
+$$
+
+This score drives three related quantities:
+
+$$
+\mu_{ik}
+=
+\frac{\exp(\theta_{ik})}{\sum_{\ell=1}^K \exp(\theta_{i\ell})},
+$$
+
+$$
+\rho_{ik}
+=
+\operatorname{logit}^{-1}\left(a_\rho \theta_{ik}-\tau_\rho\right),
+$$
+
+and a row-level nonzero probability
+
+$$
+\pi_i
+=
+\operatorname{logit}^{-1}
+\left(
+a_\pi\, h(\theta_i)-\tau_\pi
+\right).
+$$
+
+Here:
+
+- $\mu_{ik}$ is the allocation mean.
+- $\rho_{ik}$ is the component-level inclusion probability.
+- $\pi_i$ is the probability that observation $i$ has any positive mass.
+- $a_\rho$ controls how strongly the latent score affects component inclusion.
+- $\tau_\rho$ controls component-level sparsity.
+- $a_\pi$ controls how strongly the latent scores affect the row-level hurdle.
+- $\tau_\pi$ controls the probability of all-zero rows.
+
+The function $h(\theta_i)$ summarizes the latent scores into a single row-level signal.
+
+---
+
+## Choosing the Row-Level Signal $h(\theta_i)$
+
+A convenient choice is the log-sum-exp:
+
+$$
+h(\theta_i)
+=
+\log\sum_{k=1}^K \exp(\theta_{ik}).
+$$
+
+This quantity is high when the model assigns high latent intensity to at least one component.
+
+Thus,
+
+$$
+\pi_i
+=
+\operatorname{logit}^{-1}
+\left(
+a_\pi \log\sum_{k=1}^K \exp(\theta_{ik})
+-\tau_\pi
+\right).
+$$
+
+### Intuition
+
+The log-sum-exp behaves like a smooth maximum:
+
+$$
+\log\sum_k \exp(\theta_{ik})
+\approx
+\max_k \theta_{ik}.
+$$
+
+So the hurdle says:
+
+> the row is likely to be nonzero when at least one component has high latent intensity.
+
+This avoids using the observed active set $A_i$ to define the hurdle probability.
+
+---
+
+## Alternative Sampling-Effort Hurdle
+
+If the data have a meaningful sample size or exposure $M_i$, use:
+
+$$
+\pi_i
+=
+1-
+\prod_{k=1}^K
+\left(1-\omega_{ik}\right)^{M_i},
+$$
+
+where
+
+$$
+\omega_{ik}
+=
+\operatorname{logit}^{-1}(a_\pi \theta_{ik}-\tau_\pi).
+$$
+
+This says:
+
+> the row is nonzero if at least one latent component is detected after $M_i$ effective opportunities.
+
+This is closer to the ZOID interpretation, but still keeps the latent index structure.
+
+---
+
+## Generative Model
+
+The full generative model is:
+
+$$
+d_i\sim \operatorname{Bernoulli}(\pi_i).
+$$
+
+If
+
+$$
+d_i=0,
+$$
+
+then
+
+$$
+y_i=\mathbf{0}.
+$$
+
+If
+
+$$
+d_i=1,
+$$
+
+then draw a component active set:
+
+$$
+z_{ik}\sim \operatorname{Bernoulli}(\rho_{ik}),
+$$
+
+conditioned on
+
+$$
+\sum_{k=1}^K z_{ik}\ge 1.
+$$
+
+Let
+
+$$
+A_i=\{k:z_{ik}=1\}.
+$$
+
+Then:
+
+- if $|A_i|=1$, the active component receives all mass;
+- if $|A_i|\ge 2$, the positive components follow a Dirichlet distribution.
+
+Specifically,
+
+$$
+y_{i,A_i}
+\sim
+\operatorname{Dirichlet}
+\left(
+\alpha_{i,A_i}
+\right),
+$$
+
+where
+
+$$
+\alpha_{ik}
+=
+\phi
+\frac{\mu_{ik}}{\sum_{\ell\in A_i}\mu_{i\ell}},
+\qquad k\in A_i.
+$$
+
+Inactive components satisfy
+
+$$
+y_{ik}=0
+\qquad
+\text{for } k\notin A_i.
+$$
+
+---
+
+## Full Likelihood
+
+Define:
+
+$$
+A_i=\{k:y_{ik}>0\},
+$$
+
+and
+
+$$
+s_i=\sum_{k=1}^K y_{ik}.
+$$
+
+The likelihood has two cases.
+
+### Case 1: all-zero row
+
+If
+
+$$
+s_i=0,
+$$
+
+then
+
+$$
+\ell_i
+=
+\log(1-\pi_i).
+$$
+
+### Case 2: nonzero row
+
+If
+
+$$
+s_i>0,
+$$
+
+define the normalized composition
+
+$$
+\tilde y_i=\frac{y_i}{s_i}.
+$$
+
+Then
+
+$$
+\ell_i
+=
+\log(\pi_i)
++
+\log P(A_i\mid A_i\neq\varnothing)
++
+\mathbf{1}(|A_i|\ge 2)
+\log
+\operatorname{Dirichlet}
+\left(
+\tilde y_{i,A_i}\mid \alpha_{i,A_i}
+\right).
+$$
+
+The active-set probability is
+
+$$
+P(A_i\mid A_i\neq\varnothing)
+=
+\frac{
+\prod_{k\in A_i}\rho_{ik}
+\prod_{k\notin A_i}(1-\rho_{ik})
+}{
+1-\prod_{k=1}^K(1-\rho_{ik})
+}.
+$$
+
+Therefore,
+
+$$
+\ell_i
+=
+\log(\pi_i)
++
+\sum_{k\in A_i}\log\rho_{ik}
++
+\sum_{k\notin A_i}\log(1-\rho_{ik})
+-
+\log
+\left[
+1-\prod_{k=1}^K(1-\rho_{ik})
+\right]
++
+\mathbf{1}(|A_i|\ge 2)
+\log
+\operatorname{Dirichlet}
+\left(
+\tilde y_{i,A_i}\mid \alpha_{i,A_i}
+\right).
+$$
+
+The full sample log likelihood is
+
+$$
+\mathcal L
+=
+\sum_{i=1}^N \ell_i.
+$$
+
+---
+
+## Component-Level Boundary Probabilities Conditional on Nonzero Row
+
+Conditional on the row being nonzero, the component-level probabilities are:
+
+$$
+\Pr(y_{ik}=0\mid d_i=1)
+=
+\frac{
+(1-\rho_{ik})
+\left[
+1-\prod_{m\ne k}(1-\rho_{im})
+\right]
+}{
+1-\prod_{m=1}^K(1-\rho_{im})
+},
+$$
+
+$$
+\Pr(y_{ik}=1\mid d_i=1)
+=
+\frac{
+\rho_{ik}\prod_{m\ne k}(1-\rho_{im})
+}{
+1-\prod_{m=1}^K(1-\rho_{im})
+},
+$$
+
+and
+
+$$
+\Pr(0<y_{ik}<1\mid d_i=1)
+=
+\frac{
+\rho_{ik}
+\left[
+1-\prod_{m\ne k}(1-\rho_{im})
+\right]
+}{
+1-\prod_{m=1}^K(1-\rho_{im})
+}.
+$$
+
+Unconditionally, these become:
+
+$$
+\Pr(y_{ik}=1)
+=
+\pi_i
+\Pr(y_{ik}=1\mid d_i=1),
+$$
+
+$$
+\Pr(0<y_{ik}<1)
+=
+\pi_i
+\Pr(0<y_{ik}<1\mid d_i=1),
+$$
+
+and
+
+$$
+\Pr(y_{ik}=0)
+=
+(1-\pi_i)
++
+\pi_i
+\Pr(y_{ik}=0\mid d_i=1).
+$$
+
+This last expression reflects two ways for $y_{ik}=0$:
+
+1. the entire row is zero;
+2. the row is nonzero, but component $k$ is excluded.
+
+---
+
+## Ordered-Beta-Style Braces
+
+The unconditional component-level distribution can be written as
+
+$$
+y_{ik}
+\sim
+\begin{cases}
+0,
+&
+(1-\pi_i)
++
+\pi_i
+\dfrac{
+(1-\rho_{ik})
+\left[
+1-\prod_{m\ne k}(1-\rho_{im})
+\right]
+}{
+1-\prod_{m=1}^K(1-\rho_{im})
+}
+\$$18pt]
+
+(0,1),
+&
+\pi_i
+\dfrac{
+\rho_{ik}
+\left[
+1-\prod_{m\ne k}(1-\rho_{im})
+\right]
+}{
+1-\prod_{m=1}^K(1-\rho_{im})
+}
+\$$18pt]
+
+1,
+&
+\pi_i
+\dfrac{
+\rho_{ik}\prod_{m\ne k}(1-\rho_{im})
+}{
+1-\prod_{m=1}^K(1-\rho_{im})
+}.
+\end{cases}
+$$
+
+The middle case is shorthand for the event that component $k$ is active along with at least one other component, in which case the positive subcomposition is Dirichlet-distributed.
+
+---
+
+## Interpretation of Parameters
+
+| Parameter | Role | Interpretation |
+|---|---|---|
+| $\beta_k$ | shared latent index | affects hurdle, inclusion, and allocation |
+| $\tau_\pi$ | row-level threshold | controls all-zero probability |
+| $a_\pi$ | hurdle scale | controls how strongly latent intensity affects nonzero rows |
+| $\tau_\rho$ | component threshold | controls sparsity among nonzero rows |
+| $a_\rho$ | inclusion scale | controls how sharply components enter the active set |
+| $\phi$ | Dirichlet precision | controls dispersion among active components |
+
+---
+
+## Why This Avoids Circularity
+
+The model does **not** define the hurdle probability using the realized active set:
+
+$$
+A_i=\{k:y_{ik}>0\}.
+$$
+
+Instead, it defines the hurdle probability using the latent index:
+
+$$
+h(\theta_i)
+=
+\log\sum_{k=1}^K\exp(\theta_{ik}).
+$$
+
+This is known before $y_i$ is generated.
+
+Thus the generative order is valid:
+
+$$
+\theta_i
+\rightarrow
+\pi_i
+\rightarrow
+d_i
+\rightarrow
+z_i
+\rightarrow
+A_i
+\rightarrow
+y_i.
+$$
+
+---
+
+## Stan-Style Likelihood
+
+```stan
+real joint_hurdle_ordered_dirichlet_lpdf(vector y,
+                                         vector theta,
+                                         real phi,
+                                         real tau_rho,
+                                         real a_rho,
+                                         real tau_pi,
+                                         real a_pi) {
+  int K = num_elements(y);
+  real total = sum(y);
+
+  // row-level hurdle using log-sum-exp signal
+  real h = log_sum_exp(theta);
+  real logit_pi = a_pi * h - tau_pi;
+
+  if (total == 0) {
+    return bernoulli_logit_lpmf(0 | logit_pi);
+  } else {
+    vector[K] y_norm = y / total;
+    vector[K] rho;
+    vector[K] mu = softmax(theta);
+    real lp_A = 0;
+    real log_empty = 0;
+    int A_size = 0;
+    array[K] int active;
+
+    for (k in 1:K) {
+      real eta_k = a_rho * theta[k] - tau_rho;
+      real log_rho = -log1p_exp(-eta_k);
+      real log1m_rho = -log1p_exp(eta_k);
+
+      rho[k] = inv_logit(eta_k);
+      log_empty += log1m_rho;
+
+      if (y_norm[k] > 0) {
+        A_size += 1;
+        active[A_size] = k;
+        lp_A += log_rho;
+      } else {
+        lp_A += log1m_rho;
+      }
+    }
+
+    if (A_size == 0) {
+      return negative_infinity();
+    }
+
+    lp_A -= log1m_exp(log_empty);
+
+    if (A_size == 1) {
+      return bernoulli_logit_lpmf(1 | logit_pi) + lp_A;
+    } else {
+      vector[A_size] y_A;
+      vector[A_size] alpha_A;
+      real mu_sum = 0;
+
+      for (a in 1:A_size) {
+        mu_sum += mu[active[a]];
+      }
+
+      for (a in 1:A_size) {
+        int k = active[a];
+        y_A[a] = y_norm[k];
+        alpha_A[a] = phi * mu[k] / mu_sum;
+      }
+
+      return bernoulli_logit_lpmf(1 | logit_pi)
+             + lp_A
+             + dirichlet_lpdf(y_A | alpha_A);
+    }
+  }
+}
+```
+
+---
+
+## Relationship to Ordered Beta Regression
+
+This model extends the ordered beta idea in two ways.
+
+First, it preserves the ordered-beta-style triplet:
+
+$$
+0,\qquad (0,1),\qquad 1.
+$$
+
+Second, it adds an outer hurdle:
+
+$$
+\mathbf{0}
+\qquad \text{versus} \qquad
+\Delta^{K-1}.
+$$
+
+So the model is best understood as:
+
+$$
+\text{hurdle}
++
+\text{ordered Dirichlet}
+=
+\text{zero-inflated ordered Dirichlet}.
+$$
+
+The shared latent index keeps the model parsimonious:
+
+$$
+\theta_{ik}=x_i^\top\beta_k
+$$
+
+drives:
+
+- whether anything is present,
+- which components are active,
+- and how mass is allocated once active.
+
+---
+
+## Practical Recommendation
+
+Use this joint hurdle ordered Dirichlet when:
+
+- all-zero rows are meaningful,
+- zeros within nonzero rows are also meaningful,
+- ones are possible,
+- and you want a single shared regression structure.
+
+If all-zero rows are impossible by design, drop the hurdle and use the ordinary ordered Dirichlet.
+
+If zeros are only sampling artifacts, a ZOID-style effective-sample-size model may be preferable.

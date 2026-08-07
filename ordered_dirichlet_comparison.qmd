@@ -1,0 +1,2272 @@
+---
+title: "Ordered Dirichlet, ZADR, and zoid: Comparing Compositional Diet Models"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    self-contained: true
+execute:
+  warning: false
+  message: false
+  cache: false
+---
+
+## Introduction
+
+Compositional diet data — where each observation is a vector of prey proportions summing to one — is challenging to model because most entries are structural zeros (prey not observed in that stomach). Two different statistical approaches are compared here:
+
+**zoid** (Zero-and-One Inflated Dirichlet; Anderson & Ward 2022) handles zeros through per-category zero-inflation parameters fitted separately for each prey item.
+
+**Ordered Dirichlet (Single Shared Mean)** is a custom Stan model where a single global threshold τ governs sparsity across *all* categories simultaneously. Activity for category *k* is driven by `sigmoid(θ_k − τ)`, where `θ = β'X` is a category-specific linear predictor and `softmax(θ)` is the Dirichlet mean direction. This couples mean direction and sparsity through the same parameters, with τ as the only global sparsity knob.
+
+**ZADR (Zero-Adjusted Dirichlet Regression; Tsagris & Stewart 2018)** handles zeros by treating each distinct zero pattern as a latent group. The probability of each group is estimated empirically (θ_b = n_b / N), and within each group the non-zero components follow a Dirichlet whose mean is the renormalized softmax of the covariate-linked linear predictor, with a shared precision φ.
+
+**Coupled Ordered Dirichlet** extends the Ordered Dirichlet by (1) allowing all-zero rows naturally — the empty active set $A_i = \varnothing$ corresponds to an all-zero row, so no truncation denominator is needed — and (2) adding an inclusion-scale parameter $a_\rho > 0$ that modulates how sharply the latent score $\theta_{ik}$ drives component activity. Each component is included via $z_{ik} \sim \mathrm{Bernoulli}(\sigma(a_\rho\theta_{ik}-\tau))$ independently.
+
+All four models are fit to the `coddiet` dataset with intercept-only and Season-covariate specifications and compared via leave-one-out cross-validation (LOO-IC).
+
+```{r}
+#| label: setup
+#| cache: false
+library(zoid)
+library(cmdstanr)
+library(posterior)
+library(loo)
+library(ggplot2)
+library(ggrepel)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+
+set.seed(123)
+```
+
+------------------------------------------------------------------------
+
+## Model Specifications
+
+### Shared Notation
+
+Let $\mathbf{y}_i = (y_{i1}, \ldots, y_{iK})^\top \in \mathcal{S}^K$ be a $K$-dimensional compositional observation for subject $i = 1, \ldots, N$, where $y_{ik} \geq 0$ and $\sum_{k=1}^K y_{ik} = 1$. Let $\mathbf{X}$ be the $N \times P$ design matrix with rows $\mathbf{x}_i^\top$.
+
+The softmax mean vector is $$\boldsymbol{\mu}_i = \operatorname{softmax}(\boldsymbol{\theta}_i), \qquad
+  \boldsymbol{\theta}_i = \boldsymbol{\beta}^\top \mathbf{x}_i \in \mathbb{R}^K,$$ with one reference category constrained to zero. Define the *active set* for observation $i$ as $A_i = \{k : y_{ik} > 0\}$, and the renormalized active mean $$\tilde{\mu}_{ik} = \frac{\mu_{ik}}{\sum_{k' \in A_i} \mu_{ik'}}, \quad k \in A_i.$$
+
+------------------------------------------------------------------------
+
+### Model 1: zoid
+
+zoid (Anderson & Ward 2022) assigns an independent per-category zero-inflation probability $\pi_k$ and links the Dirichlet mean to covariates via softmax. Letting $\phi$ be the Dirichlet precision, the marginal density of the $k$-th component for observation $i$ is
+
+$$p(y_{ik}) = \pi_k \cdot \mathbf{1}[y_{ik}=0]
+            + (1 - \pi_k) \cdot f_{\mathrm{Beta}}(y_{ik};\, \phi\mu_{ik},\, \phi(1-\mu_{ik})),$$
+
+and the joint log-likelihood is accumulated at the **observation** $\times$ category level (yielding $N \times K$ pointwise values for LOO):
+
+$$\ell^{\mathrm{zoid}} = \sum_{i=1}^N \sum_{k=1}^K
+  \log p(y_{ik} \mid \boldsymbol{\mu}_i, \phi, \boldsymbol{\pi}).$$
+
+------------------------------------------------------------------------
+
+### Model 2: Ordered Dirichlet (Single Shared Mean)
+
+A single global threshold $\tau$ governs sparsity. The per-category activity probability is $$\rho_{ik} = \sigma(\theta_{ik} - \tau), \quad
+  \sigma(x) = (1 + e^{-x})^{-1},$$ and the precision is covariate-linked: $\phi_i = \exp(\boldsymbol{\delta}^\top \mathbf{x}_i)$.
+
+The observation-level log-likelihood conditions on the active set $A_i$ being non-empty:
+
+$$\ell_i^{\mathrm{ord}} =
+  \underbrace{
+    \sum_{k \in A_i} \log\rho_{ik} + \sum_{k \notin A_i}\log(1-\rho_{ik})
+    - \log\!\Bigl(1 - \prod_{k=1}^K(1-\rho_{ik})\Bigr)
+  }_{\text{Bernoulli zero pattern, conditioned on }A_i \neq \emptyset}
+  + \underbrace{
+    \log\mathrm{Dir}\!\bigl(\mathbf{y}_{A_i}\mid\phi_i\,\tilde{\boldsymbol{\mu}}_{A_i}\bigr)
+  }_{\text{Dirichlet over active set (}|A_i|>1\text{)}}.$$
+
+Reference category: $\boldsymbol{\beta}_{\cdot K} = \mathbf{0}$.
+
+**Stan `lpdf`:**
+
+``` stan
+real ordered_dirichlet_shared_lpdf(
+    vector y, vector theta, real phi, real tau) {
+  int K = num_elements(y);
+  vector[K] mu  = softmax(theta);
+  vector[K] eta = theta - tau;           // activity logits
+  int A_size = 0;
+  array[K] int active;
+  real lp_A = 0; real log_empty = 0;
+
+  for (k in 1:K) {
+    real log_rho   = -log1p_exp(-eta[k]);
+    real log1m_rho = -log1p_exp( eta[k]);
+    log_empty += log1m_rho;
+    if (y[k] > 0) { A_size += 1; active[A_size] = k; lp_A += log_rho; }
+    else           {                                   lp_A += log1m_rho; }
+  }
+  lp_A -= log1m_exp(log_empty);         // condition on at least one active
+
+  if (A_size == 1) return lp_A;
+
+  vector[A_size] y_A; vector[A_size] alpha_A; real mu_sum = 0;
+  for (a in 1:A_size) mu_sum += mu[active[a]];
+  for (a in 1:A_size) {
+    y_A[a]     = y[active[a]];
+    alpha_A[a] = phi * mu[active[a]] / mu_sum;   // renormalized concentration
+  }
+  return lp_A + dirichlet_lpdf(y_A | alpha_A);
+}
+```
+
+------------------------------------------------------------------------
+
+### Model 3: ZADR
+
+Each distinct zero pattern $\mathbf{g}_{b} \in \{0,1\}^K$ defines a latent group with empirical probability $\theta_b = n_b / N$ (where $n_b$ is the count of observations with that pattern). Given group $b^*(i)$ for observation $i$, the non-zero components follow $\mathbf{y}_{A_i} \sim \mathrm{Dir}(\phi\,\tilde{\boldsymbol{\mu}}_{A_i})$. Because $\sum_{k \in A_i}\tilde{\mu}_{ik} = 1$, the sum of Dirichlet concentrations is always $\phi$, so $\log\Gamma(\phi)$ is the normalizing constant for every pattern.
+
+The observation-level log-likelihood is (Tsagris & Stewart 2018, Eq. 8):
+
+$$\ell_i^{\mathrm{zadr}} =
+  \log\theta_{b^*(i)}
+  + \log\Gamma(\phi)
+  - \sum_{k \in A_i}\log\Gamma(\phi\,\tilde{\mu}_{ik})
+  + \sum_{k \in A_i}(\phi\,\tilde{\mu}_{ik} - 1)\log y_{ik}.$$
+
+Reference category: $\boldsymbol{\beta}_{\cdot 1} = \mathbf{0}$ (component 1 is baseline, following the Compositional R package convention).
+
+---
+
+### Model 3b: Bayesian ZADR
+
+The fixed-theta ZADR treats $\theta_b = n_b/N$ as a plug-in estimate. A fully
+Bayesian extension places a symmetric Dirichlet prior on the $B$ pattern
+probabilities:
+
+$$\boldsymbol{\theta} \sim \mathrm{Dirichlet}(\alpha_0 \mathbf{1}_B),$$
+
+where $\alpha_0 = 1$ gives a uniform prior over the simplex. The log-likelihood
+for observation $i$ is identical to Eq.\ (ZADR) above, with $\theta_{b^*(i)}$
+now a latent parameter:
+
+$$\ell_i^{\mathrm{zadr\text{-}bayes}} =
+  \log\theta_{b^*(i)}
+  + \log\Gamma(\phi)
+  - \sum_{k \in A_i}\log\Gamma(\phi\,\tilde{\mu}_{ik})
+  + \sum_{k \in A_i}(\phi\,\tilde{\mu}_{ik} - 1)\log y_{ik}.$$
+
+The data block passes integer pattern identifiers `pattern_id[i]` ∈ \{1,…,B\}
+instead of the precomputed `log_theta`, and estimates `simplex[B] theta`
+alongside $\boldsymbol{\beta}$ and $\phi$.
+
+**Stan model block:**
+```stan
+parameters {
+  matrix[P, K - 1] beta_raw;
+  real<lower=0>    phi;
+  simplex[B]       theta;       // stochastic zero-pattern probabilities
+}
+model {
+  to_vector(beta_raw) ~ normal(0, 1);
+  phi   ~ gamma(2, 0.1);
+  theta ~ dirichlet(rep_vector(alpha_0, B));
+  for (i in 1:N) {
+    vector[K] mu = softmax(beta' * to_vector(X[i]'));
+    y[i] ~ zadr(mu, phi, log(theta[pattern_id[i]]));
+  }
+}
+```
+
+---
+
+### Model 4: Coupled Ordered Dirichlet
+
+The coupled model replaces the conditioned inclusion of the Ordered Dirichlet with independent Bernoulli draws — no truncation is needed because the empty active set is the all-zero row. An extra scale parameter $a_\rho > 0$ controls how sharply the latent score drives inclusion.
+
+For all-zero rows ($s_i = 0$):
+$$\ell_i^{\mathrm{coupled}} = \sum_{k=1}^K \log(1-\rho_{ik}), \qquad \rho_{ik} = \sigma(a_\rho\theta_{ik}-\tau).$$
+
+For nonzero rows ($s_i > 0$), letting $A_i = \{k : y_{ik} > 0\}$:
+$$\ell_i^{\mathrm{coupled}} =
+  \sum_{k \in A_i}\log\rho_{ik}
+  + \sum_{k \notin A_i}\log(1-\rho_{ik})
+  + \mathbf{1}(|A_i|\ge 2)\,\log\mathrm{Dir}\!\bigl(\tilde{\mathbf{y}}_{A_i}\mid\phi_i\,\tilde{\boldsymbol{\mu}}_{A_i}\bigr).$$
+
+Precision is log-linear: $\phi_i = \exp(\boldsymbol{\delta}^\top\mathbf{x}_i)$. Reference category: $\boldsymbol{\beta}_{\cdot K} = \mathbf{0}$.
+
+**Stan `lpdf`:**
+
+``` stan
+real coupled_ordered_dirichlet_lpdf(
+    vector y, vector theta, real phi, real tau, real a_rho, real eps) {
+  int K = num_elements(y);
+  real total = sum(y);
+  vector[K] mu = softmax(theta);
+  real lp_A = 0;
+
+  if (total <= eps) {
+    for (k in 1:K)
+      lp_A += bernoulli_logit_lpmf(0 | a_rho * theta[k] - tau);
+    return lp_A;
+  }
+  vector[K] y_norm = y / total;
+  int A_size = 0; array[K] int active;
+  for (k in 1:K) {
+    real eta_k = a_rho * theta[k] - tau;
+    if (y_norm[k] > eps) { A_size += 1; active[A_size] = k;
+                            lp_A += bernoulli_logit_lpmf(1 | eta_k); }
+    else                  { lp_A += bernoulli_logit_lpmf(0 | eta_k); }
+  }
+  if (A_size == 1) return lp_A;
+  vector[A_size] y_A; vector[A_size] alpha_A; real mu_sum = 0;
+  for (a in 1:A_size) mu_sum += mu[active[a]];
+  for (a in 1:A_size) {
+    y_A[a]     = y_norm[active[a]];
+    alpha_A[a] = phi * mu[active[a]] / mu_sum;
+  }
+  return lp_A + dirichlet_lpdf(y_A | alpha_A);
+}
+```
+
+---
+
+**Stan `lpdf` (shared by both ZADR variants):**
+
+``` stan
+real zadr_lpdf(vector y, vector mu, real phi, real log_theta) {
+  int K = num_elements(y);
+  real mu_active_sum = 0;
+  real lgamma_sum    = 0;
+  real y_terms       = 0;
+
+  for (k in 1:K)
+    if (y[k] > 0) mu_active_sum += mu[k];
+
+  for (k in 1:K) {
+    if (y[k] > 0) {
+      real mu_k    = mu[k] / mu_active_sum;   // renormalize to active set
+      real alpha_k = phi * mu_k;
+      lgamma_sum  += lgamma(alpha_k);
+      y_terms     += (alpha_k - 1) * log(y[k]);
+    }
+  }
+  // lgamma(phi) = lgamma(sum alpha_k) since renormalized mu sums to 1
+  return log_theta + lgamma(phi) - lgamma_sum + y_terms;
+}
+```
+
+------------------------------------------------------------------------
+
+## Data
+
+The `coddiet` dataset contains cod stomach samples from the Faroe Bank, stratified by Year and Season. Columns are prey item biomass measurements.
+
+```{r}
+#| label: data
+data(coddiet)
+
+design_raw <- coddiet[, c("Year", "Season")]
+data_raw   <- coddiet[, !names(coddiet) %in% c("Year", "Season")]
+
+design_raw$Season <- as.factor(design_raw$Season)
+design_raw$Year   <- as.factor(design_raw$Year)
+
+# Drop rows with zero total biomass (no prey found)
+row_totals <- rowSums(data_raw)
+keep       <- row_totals > 0
+data_raw   <- data_raw[keep, ]
+design_raw <- design_raw[keep, ]
+
+# Row-normalise to proportions for the ordered Dirichlet model
+Y_prop <- as.matrix(data_raw) / rowSums(data_raw)
+
+# coddiet has K=30 prey categories but only N=10 observations.
+# Reduce to the top K_max prey by non-zero frequency so both models are
+# tractable and not severely overparameterised.
+K_max <- 10L
+prey_freq  <- colMeans(Y_prop > 0)
+top_prey   <- names(sort(prey_freq, decreasing = TRUE))[seq_len(K_max)]
+data_raw   <- data_raw[, top_prey]
+Y_prop     <- Y_prop[, top_prey]
+# Some rows may now be all-zero if their prey were outside the top set
+keep2      <- rowSums(data_raw) > 0
+data_raw   <- data_raw[keep2, ]
+design_raw <- design_raw[keep2, ]
+Y_prop     <- Y_prop[keep2, ]
+Y_prop     <- Y_prop / rowSums(Y_prop)   # re-normalise after column drop
+
+N <- nrow(Y_prop)
+K <- ncol(Y_prop)
+prey_names <- colnames(Y_prop)
+
+cat(sprintf("N = %d stomachs, K = %d prey categories (top %d by frequency)\n",
+            N, K, K_max))
+cat(sprintf("Overall zero proportion: %.2f\n", mean(Y_prop == 0)))
+cat("\nSeason counts:\n"); print(table(design_raw$Season))
+
+# Precompute log_theta for ZADR: log(proportion of obs sharing the same zero pattern)
+zero_patterns  <- apply(Y_prop > 0, 1, paste, collapse = ",")
+pattern_counts <- table(zero_patterns)
+log_theta_vec  <- log(as.numeric(pattern_counts[zero_patterns]) / N)
+cat(sprintf("\nDistinct zero patterns: %d\n", length(unique(zero_patterns))))
+```
+
+```{r}
+#| label: fig-data
+#| fig-cap: "Distribution of prey proportions by season. Most entries are zero."
+#| fig-height: 5
+
+Y_long <- as_tibble(Y_prop) |>
+  mutate(Season = design_raw$Season) |>
+  pivot_longer(-Season, names_to = "prey", values_to = "prop")
+
+ggplot(Y_long, aes(x = reorder(prey, prop, median), y = prop, fill = Season)) +
+  geom_boxplot(outlier.size = 0.4, alpha = 0.8, linewidth = 0.3) +
+  coord_flip() +
+  scale_fill_brewer(palette = "Set2") +
+  labs(x = NULL, y = "Proportion", title = "Prey proportions by Season") +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "top")
+```
+
+------------------------------------------------------------------------
+
+## Model 1: zoid
+
+```{r}
+#| label: fit-zoid
+design_zoid   <- design_raw
+design_zoid$y <- 1   # dummy response required by formula interface
+
+fit_zoid_null <- fit_zoid(
+  data_matrix    = as.matrix(data_raw),
+  overdispersion = TRUE,
+  chains = 4,
+  iter = 2000, refresh = 500
+)
+
+fit_zoid_season <- fit_zoid(
+  formula        = y ~ Season,
+  design_matrix  = design_zoid,
+  data_matrix    = as.matrix(data_raw),
+  overdispersion = TRUE,
+  chains = 4, 
+  iter = 2000, refresh = 500
+)
+```
+
+------------------------------------------------------------------------
+
+## Model 2: Ordered Dirichlet (Single Shared Mean)
+
+The Stan model includes a `generated quantities` block for pointwise log-likelihoods required by `loo`.
+
+```{r}
+#| label: stan-code
+stan_code <- '
+functions {
+  real ordered_dirichlet_shared_lpdf(
+      vector y, vector theta, real phi, real tau) {
+    int K = num_elements(y);
+    vector[K] mu  = softmax(theta);
+    vector[K] eta = theta - tau;
+    int A_size = 0;
+    array[K] int active;
+    real lp_A      = 0;
+    real log_empty = 0;
+    for (k in 1:K) {
+      real log_rho   = -log1p_exp(-eta[k]);
+      real log1m_rho = -log1p_exp(eta[k]);
+      log_empty += log1m_rho;
+      if (y[k] > 0) {
+        A_size += 1; active[A_size] = k; lp_A += log_rho;
+      } else {
+        lp_A += log1m_rho;
+      }
+    }
+    lp_A -= log1m_exp(log_empty);
+    if (A_size == 1) {
+      return lp_A;
+    } else {
+      vector[A_size] y_A;
+      vector[A_size] alpha_A;
+      real mu_sum = 0;
+      for (a in 1:A_size) mu_sum += mu[active[a]];
+      for (a in 1:A_size) {
+        y_A[a]     = y[active[a]];
+        alpha_A[a] = phi * mu[active[a]] / mu_sum;
+      }
+      return lp_A + dirichlet_lpdf(y_A | alpha_A);
+    }
+  }
+}
+data {
+  int<lower=1> N;
+  int<lower=2> K;
+  int<lower=1> P;
+  matrix[N, P]       X;
+  array[N] vector[K] y;
+}
+parameters {
+  matrix[P, K - 1] beta_raw;
+  real tau;
+  vector[P] delta;
+}
+transformed parameters {
+  matrix[P, K] beta;
+  for (k in 1:(K - 1)) beta[, k] = beta_raw[, k];
+  beta[, K] = rep_vector(0, P);
+}
+model {
+  to_vector(beta_raw) ~ normal(0, 1);
+  tau   ~ normal(0, 2);
+  delta ~ normal(0, 1);
+  for (i in 1:N) {
+    vector[K] theta_i = beta\' * to_vector(X[i]\');
+    real      phi_i   = exp(dot_product(to_vector(X[i]\'), delta));
+    y[i] ~ ordered_dirichlet_shared(theta_i, phi_i, tau);
+  }
+}
+generated quantities {
+  vector[N] log_lik;
+  for (i in 1:N) {
+    vector[K] theta_i = beta\' * to_vector(X[i]\');
+    real      phi_i   = exp(dot_product(to_vector(X[i]\'), delta));
+    log_lik[i] = ordered_dirichlet_shared_lpdf(y[i] | theta_i, phi_i, tau);
+  }
+}
+'
+
+stan_file <- tempfile(fileext = ".stan")
+writeLines(stan_code, stan_file)
+ord_mod <- cmdstan_model(stan_file)
+```
+
+```{r}
+#| label: fit-ord
+
+X_null   <- matrix(1.0, N, 1L)
+X_season <- model.matrix(~ Season, design_raw)   # N x 2: intercept + Season2
+
+shared_args <- list(
+  chains = 4L, parallel_chains = 4L,
+  iter_warmup = 1000L, iter_sampling = 1000L,
+  seed = 123L, refresh = 0L
+)
+
+fit_ord_null <- do.call(
+  ord_mod$sample,
+  c(list(data = list(N = N, K = K, P = 1L, X = X_null,
+                     y = lapply(seq_len(N), function(i) Y_prop[i, ]))),
+    shared_args)
+)
+
+fit_ord_season <- do.call(
+  ord_mod$sample,
+  c(list(data = list(N = N, K = K, P = ncol(X_season), X = X_season,
+                     y = lapply(seq_len(N), function(i) Y_prop[i, ]))),
+    shared_args)
+)
+```
+
+------------------------------------------------------------------------
+
+## Model 3: ZADR (Zero-Adjusted Dirichlet Regression)
+
+ZADR uses a multinomial logistic link (softmax) for the Dirichlet mean and treats zeros through an empirical mixture over zero patterns. The `log_theta` vector (log proportion of observations sharing each zero pattern) is passed as fixed data.
+
+```{r}
+#| label: fit-zadr
+zadr_mod <- cmdstan_model("zadr.stan")
+
+zadr_data_null <- list(
+  N         = N,
+  K         = K,
+  P         = 1L,
+  X         = X_null,
+  y         = lapply(seq_len(N), function(i) Y_prop[i, ]),
+  log_theta = log_theta_vec
+)
+
+zadr_data_season <- list(
+  N         = N,
+  K         = K,
+  P         = ncol(X_season),
+  X         = X_season,
+  y         = lapply(seq_len(N), function(i) Y_prop[i, ]),
+  log_theta = log_theta_vec
+)
+
+fit_zadr_null <- do.call(
+  zadr_mod$sample,
+  c(list(data = zadr_data_null), shared_args)
+)
+
+fit_zadr_season <- do.call(
+  zadr_mod$sample,
+  c(list(data = zadr_data_season), shared_args)
+)
+```
+
+---
+
+## Model 3b: Bayesian ZADR
+
+The Bayesian ZADR replaces the fixed $\theta_b = n_b/N$ plug-in with a
+`simplex[B]` parameter estimated from the posterior. A uniform Dirichlet
+prior (`alpha_0 = 1`) is used here.
+
+```{r}
+#| label: fit-zadr-bayes
+
+# Build integer pattern IDs for each observation
+pattern_labels <- apply(Y_prop > 0, 1, paste, collapse = ",")
+pattern_levels <- unique(pattern_labels)
+B              <- length(pattern_levels)
+pattern_id     <- match(pattern_labels, pattern_levels)
+
+cat(sprintf("B = %d distinct zero patterns\n", B))
+
+zadr_bayes_mod <- cmdstan_model("zadr_bayes.stan")
+
+zadr_bayes_data_null <- list(
+  N          = N,
+  K          = K,
+  P          = 1L,
+  B          = B,
+  X          = X_null,
+  y          = lapply(seq_len(N), function(i) Y_prop[i, ]),
+  pattern_id = pattern_id,
+  alpha_0    = 1.0
+)
+
+zadr_bayes_data_season <- list(
+  N          = N,
+  K          = K,
+  P          = ncol(X_season),
+  B          = B,
+  X          = X_season,
+  y          = lapply(seq_len(N), function(i) Y_prop[i, ]),
+  pattern_id = pattern_id,
+  alpha_0    = 1.0
+)
+
+fit_zadr_bayes_null <- do.call(
+  zadr_bayes_mod$sample,
+  c(list(data = zadr_bayes_data_null), shared_args)
+)
+
+fit_zadr_bayes_season <- do.call(
+  zadr_bayes_mod$sample,
+  c(list(data = zadr_bayes_data_season), shared_args)
+)
+
+# Show posterior for theta (zero-pattern probabilities)
+theta_summary <- fit_zadr_bayes_season$summary(
+  paste0("theta[", seq_len(B), "]")
+)
+theta_summary$pattern <- pattern_levels
+cat("\nPosterior theta (zero-pattern probabilities):\n")
+print(theta_summary[, c("variable", "pattern", "mean", "sd", "q5", "q95")])
+cat("\nEmpirical theta (n_b/N):\n")
+print(table(pattern_labels) / N)
+```
+
+------------------------------------------------------------------------
+
+## Model 4: Coupled Ordered Dirichlet
+
+The coupled model allows all-zero rows natively and adds an inclusion-scale $a_\rho$. It is fit from `coupled_ordered_dirichlet.stan`.
+
+```{r}
+#| label: fit-coupled
+coupled_mod <- cmdstan_model("coupled_ordered_dirichlet.stan")
+
+coupled_data_null <- list(
+  N   = N,
+  K   = K,
+  P   = 1L,
+  X   = X_null,
+  y   = lapply(seq_len(N), function(i) Y_prop[i, ]),
+  eps = 1e-10
+)
+
+coupled_data_season <- list(
+  N   = N,
+  K   = K,
+  P   = ncol(X_season),
+  X   = X_season,
+  y   = lapply(seq_len(N), function(i) Y_prop[i, ]),
+  eps = 1e-10
+)
+
+fit_coupled_null <- do.call(
+  coupled_mod$sample,
+  c(list(data = coupled_data_null), shared_args)
+)
+
+fit_coupled_season <- do.call(
+  coupled_mod$sample,
+  c(list(data = coupled_data_season), shared_args)
+)
+```
+
+------------------------------------------------------------------------
+
+## LOO Comparison
+
+```{r}
+#| label: loo
+# zoid stores log_lik at observation×prey granularity (N*K entries); use as-is.
+# The ordered Dirichlet model stores one log_lik per observation (N entries),
+# since the K prey shares are modeled jointly. To compare at the same N*K
+# granularity, we split each observation's log-lik equally across its K prey:
+# log_lik_expanded[n, k] = log_lik_obs[n] / K. This preserves total ELPD.
+expand_ord_loo <- function(ll_obs, K_prey) {
+  N_obs <- ncol(ll_obs)
+  ll_expanded <- matrix(0, nrow(ll_obs), N_obs * K_prey)
+  for (n in seq_len(N_obs)) {
+    cols <- (n - 1L) * K_prey + seq_len(K_prey)
+    ll_expanded[, cols] <- ll_obs[, n] / K_prey
+  }
+  loo::loo(ll_expanded)
+}
+
+loo_zoid_null   <- loo::loo(loo::extract_log_lik(fit_zoid_null$model))
+loo_zoid_season <- loo::loo(loo::extract_log_lik(fit_zoid_season$model))
+loo_ord_null <- expand_ord_loo(
+  fit_ord_null$draws("log_lik", format = "matrix"), K
+)
+loo_ord_season <- expand_ord_loo(
+  fit_ord_season$draws("log_lik", format = "matrix"), K
+)
+# ZADR (fixed theta): observation-level log_lik (N entries); expand to N*K
+loo_zadr_null <- expand_ord_loo(
+  fit_zadr_null$draws("log_lik", format = "matrix"), K
+)
+loo_zadr_season <- expand_ord_loo(
+  fit_zadr_season$draws("log_lik", format = "matrix"), K
+)
+# Bayesian ZADR: same expansion
+loo_zadr_bayes_null <- expand_ord_loo(
+  fit_zadr_bayes_null$draws("log_lik", format = "matrix"), K
+)
+loo_zadr_bayes_season <- expand_ord_loo(
+  fit_zadr_bayes_season$draws("log_lik", format = "matrix"), K
+)
+# Coupled Ordered Dirichlet: observation-level log_lik; expand to N*K
+loo_coupled_null <- expand_ord_loo(
+  fit_coupled_null$draws("log_lik", format = "matrix"), K
+)
+loo_coupled_season <- expand_ord_loo(
+  fit_coupled_season$draws("log_lik", format = "matrix"), K
+)
+
+loo_list <- list(
+  zoid_null          = loo_zoid_null,
+  zoid_season        = loo_zoid_season,
+  ord_null           = loo_ord_null,
+  ord_season         = loo_ord_season,
+  zadr_null          = loo_zadr_null,
+  zadr_season        = loo_zadr_season,
+  zadr_bayes_null    = loo_zadr_bayes_null,
+  zadr_bayes_season  = loo_zadr_bayes_season,
+  coupled_null       = loo_coupled_null,
+  coupled_season     = loo_coupled_season
+)
+
+# Confirm all LOOs see the same N
+n_pts <- sapply(loo_list, function(x) nrow(x$pointwise))
+cat("Data points per LOO:", paste(names(n_pts), n_pts, sep = "=", collapse = ", "), "\n")
+
+loo_compare(loo_list)
+```
+
+```{r}
+#| label: fig-loo
+#| fig-cap: "LOO-IC point estimates ± 2 SE. Lower is better."
+
+loo_tbl <- tibble(
+  model   = names(loo_list),
+  looic   = sapply(loo_list, function(x) x$estimates["looic", "Estimate"]),
+  se      = sapply(loo_list, function(x) x$estimates["looic", "SE"])
+) |>
+  mutate(
+    family  = case_when(
+      grepl("zoid", model)       ~ "zoid",
+      grepl("zadr_bayes", model) ~ "ZADR (Bayes θ)",
+      grepl("zadr", model)       ~ "ZADR (fixed θ)",
+      grepl("coupled", model)    ~ "Coupled Ord. Dirichlet",
+      TRUE                       ~ "Ordered Dirichlet"
+    ),
+    covars  = ifelse(grepl("season", model), "+ Season", "Intercept only")
+  )
+
+ggplot(loo_tbl, aes(x = looic, y = model, colour = family, shape = covars)) +
+  geom_pointrange(aes(xmin = looic - 2 * se, xmax = looic + 2 * se),
+                  linewidth = 0.8, size = 0.8) +
+  scale_colour_brewer(palette = "Dark2") +
+  labs(x = "LOO-IC (lower = better)", y = NULL,
+       colour = "Model family", shape = "Covariates",
+       title = "LOO-IC comparison") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "right")
+```
+
+------------------------------------------------------------------------
+
+## Exact Leave-One-Out Evaluation
+
+PSIS-LOO is an approximation that can be unreliable with small N. Because N = 10 here, we can afford to refit each model 10 times — dropping one row, refitting on the remaining 9, then computing the exact log predictive density for the held-out row.
+
+For each Stan model and each fold $i$, the exact LOO log predictive density is
+
+$$\widehat{\mathrm{lpd}}_i = \log \frac{1}{S}\sum_{s=1}^S p\!\left(y_i \mid \theta^{(s)}\right), \qquad \theta^{(s)} \sim p(\theta \mid y_{-i}),$$
+
+summed to $\mathrm{ELPD} = \sum_i \widehat{\mathrm{lpd}}_i$.
+
+Models included: **Ordered Dirichlet**, **Coupled Ordered Dirichlet**, and **ZADR (fixed θ)**. For ZADR, `log_theta` is recomputed from the training rows at each fold, removing the data-leakage present in the PSIS approximation. zoid is excluded because it models components marginally (no clean joint row density).
+
+```{r}
+#| label: exact-loo-helpers
+
+# log-sum-exp stable implementation
+lse <- function(x) {
+  x <- x[is.finite(x)]
+  if (length(x) == 0L) return(-Inf)
+  m <- max(x); m + log(sum(exp(x - m)))
+}
+
+# R log-density for Ordered Dirichlet (reference = component K)
+ord_lpdf_r <- function(y, theta, phi, tau) {
+  mu   <- exp(theta - max(theta)); mu <- mu / sum(mu)
+  eta  <- theta - tau
+  lrho <- plogis( eta, log.p = TRUE)
+  l1mr <- plogis(-eta, log.p = TRUE)
+  A    <- which(y > 0)
+  if (length(A) == 0L) return(-Inf)
+  log_empty <- sum(l1mr)
+  lp_A <- sum(lrho[A]) + sum(l1mr[-A]) - log1p(-exp(log_empty))
+  if (length(A) == 1L) return(lp_A)
+  y_A   <- y[A] / sum(y[A])
+  mu_A  <- mu[A] / sum(mu[A])
+  alpha <- phi * mu_A
+  lp_A + lgamma(sum(alpha)) - sum(lgamma(alpha)) + sum((alpha - 1) * log(y_A))
+}
+
+# R log-density for Coupled Ordered Dirichlet (reference = component K)
+coupled_lpdf_r <- function(y, theta, phi, tau, a_rho, eps = 1e-10) {
+  tot  <- sum(y)
+  mu   <- exp(theta - max(theta)); mu <- mu / sum(mu)
+  eta  <- a_rho * theta - tau
+  lrho <- plogis( eta, log.p = TRUE)
+  l1mr <- plogis(-eta, log.p = TRUE)
+  if (tot <= eps) return(sum(l1mr))
+  yn   <- y / tot
+  A    <- which(yn > eps)
+  lp_A <- sum(lrho[A]) + sum(l1mr[-A])
+  if (length(A) == 1L) return(lp_A)
+  mu_A  <- mu[A] / sum(mu[A])
+  alpha <- phi * mu_A
+  lp_A + lgamma(sum(alpha)) - sum(lgamma(alpha)) + sum((alpha - 1) * log(yn[A]))
+}
+
+# R log-density for ZADR (reference = component 1)
+zadr_lpdf_r <- function(y, mu, phi, log_theta) {
+  A <- which(y > 0)
+  if (length(A) == 0L) return(-Inf)
+  mu_A  <- mu[A] / sum(mu[A])
+  alpha <- phi * mu_A
+  log_theta + lgamma(phi) - sum(lgamma(alpha)) + sum((alpha - 1) * log(y[A]))
+}
+
+# Extract P×K beta from a draws row; reference category = K (ord/coupled)
+extr_beta_K <- function(drow, P_s, K_s) {
+  cols <- paste0("beta_raw[", rep(seq_len(P_s), K_s - 1L), ",",
+                 rep(seq_len(K_s - 1L), each = P_s), "]")
+  cbind(matrix(as.numeric(drow[cols]), nrow = P_s, ncol = K_s - 1L), 0)
+}
+
+# Extract P×K beta from a draws row; reference category = 1 (ZADR)
+extr_beta_1 <- function(drow, P_s, K_s) {
+  cols <- paste0("beta_raw[", rep(seq_len(P_s), K_s - 1L), ",",
+                 rep(seq_len(K_s - 1L), each = P_s), "]")
+  cbind(0, matrix(as.numeric(drow[cols]), nrow = P_s, ncol = K_s - 1L))
+}
+```
+
+```{r}
+#| label: exact-loo
+#| cache: true
+
+P_seas <- ncol(X_season)
+
+# Lighter sampling for LOO refits (N-1 = 9 observations)
+loo_args <- list(chains = 2L, parallel_chains = 2L,
+                 iter_warmup = 500L, iter_sampling = 1000L,
+                 seed = 456L, refresh = 0L)
+
+exact_lpd <- vector("list", N)
+
+for (i in seq_len(N)) {
+  cat(sprintf("Fold %d / %d\n", i, N))
+
+  train     <- seq_len(N)[-i]
+  Y_tr      <- Y_prop[train, , drop = FALSE]
+  X_tr      <- X_season[train, , drop = FALSE]
+  y_h       <- Y_prop[i, ]
+  x_h       <- X_season[i, ]
+  y_tr_list <- lapply(seq_len(N - 1L), function(j) Y_tr[j, ])
+
+  # ── Ordered Dirichlet ────────────────────────────────────────────────────
+  f_ord <- do.call(ord_mod$sample, c(
+    list(data = list(N = N - 1L, K = K, P = P_seas,
+                     X = X_tr, y = y_tr_list)),
+    loo_args))
+  d_ord <- f_ord$draws(c("beta_raw", "tau", "delta"), format = "df") |>
+    select(-starts_with("."))
+
+  lp_ord <- vapply(seq_len(nrow(d_ord)), function(s) {
+    b   <- extr_beta_K(d_ord[s, ], P_seas, K)
+    tau <- as.numeric(d_ord$tau[s])
+    del <- as.numeric(d_ord[s, paste0("delta[", seq_len(P_seas), "]")])
+    ord_lpdf_r(y_h, as.vector(t(b) %*% x_h), exp(sum(del * x_h)), tau)
+  }, numeric(1L))
+
+  # ── Coupled Ordered Dirichlet ────────────────────────────────────────────
+  f_cpl <- do.call(coupled_mod$sample, c(
+    list(data = list(N = N - 1L, K = K, P = P_seas,
+                     X = X_tr, y = y_tr_list, eps = 1e-10)),
+    loo_args))
+  d_cpl <- f_cpl$draws(c("beta_raw", "tau", "a_rho", "delta"), format = "df") |>
+    select(-starts_with("."))
+
+  lp_cpl <- vapply(seq_len(nrow(d_cpl)), function(s) {
+    b    <- extr_beta_K(d_cpl[s, ], P_seas, K)
+    tau  <- as.numeric(d_cpl$tau[s])
+    arho <- as.numeric(d_cpl$a_rho[s])
+    del  <- as.numeric(d_cpl[s, paste0("delta[", seq_len(P_seas), "]")])
+    coupled_lpdf_r(y_h, as.vector(t(b) %*% x_h), exp(sum(del * x_h)), tau, arho)
+  }, numeric(1L))
+
+  # ── ZADR (log_theta recomputed from training rows only) ──────────────────
+  tr_pats   <- apply(Y_tr > 0, 1, paste, collapse = ",")
+  tr_counts <- table(tr_pats)
+  lth_tr    <- log(as.numeric(tr_counts[tr_pats]) / (N - 1L))
+  h_pat     <- paste(y_h > 0, collapse = ",")
+  lth_h     <- if (h_pat %in% names(tr_counts))
+                 log(as.numeric(tr_counts[h_pat]) / (N - 1L))
+               else
+                 log(1 / N)   # unseen pattern: assign 1/N probability
+
+  f_zad <- do.call(zadr_mod$sample, c(
+    list(data = list(N = N - 1L, K = K, P = P_seas,
+                     X = X_tr, y = y_tr_list, log_theta = lth_tr)),
+    loo_args))
+  d_zad <- f_zad$draws(c("beta_raw", "phi"), format = "df") |>
+    select(-starts_with("."))
+
+  lp_zad <- vapply(seq_len(nrow(d_zad)), function(s) {
+    b   <- extr_beta_1(d_zad[s, ], P_seas, K)
+    phi <- as.numeric(d_zad$phi[s])
+    mu  <- exp(as.vector(t(b) %*% x_h)); mu <- mu / sum(mu)
+    zadr_lpdf_r(y_h, mu, phi, lth_h)
+  }, numeric(1L))
+
+  exact_lpd[[i]] <- data.frame(
+    fold  = i,
+    model = c("Ordered Dirichlet", "Coupled Ord. Dirichlet", "ZADR (fixed θ)"),
+    lpd   = c(lse(lp_ord) - log(length(lp_ord)),
+              lse(lp_cpl) - log(length(lp_cpl)),
+              lse(lp_zad) - log(length(lp_zad)))
+  )
+}
+
+exact_lpd_df <- do.call(rbind, exact_lpd)
+```
+
+```{r}
+#| label: tbl-exact-loo
+#| tbl-cap: "Exact LOO ELPD (season model). Higher = better out-of-sample predictive accuracy. SE estimated as sd(lpd_i) × √N."
+
+exact_lpd_summary <- exact_lpd_df |>
+  group_by(model) |>
+  summarise(
+    ELPD   = sum(lpd),
+    SE     = sd(lpd) * sqrt(N),
+    .groups = "drop"
+  ) |>
+  arrange(desc(ELPD)) |>
+  mutate(delta_ELPD = ELPD - max(ELPD))
+
+knitr::kable(exact_lpd_summary, digits = 2,
+             col.names = c("Model", "ELPD", "SE", "ΔELPD"))
+```
+
+```{r}
+#| label: fig-exact-loo
+#| fig-cap: "Exact LOO log predictive density per held-out observation (season model). Higher is better. Lines connect folds for each model."
+#| fig-height: 4
+#| fig-width: 8
+
+ggplot(exact_lpd_df,
+       aes(x = factor(fold), y = lpd, colour = model, group = model)) +
+  geom_hline(yintercept = 0, colour = "grey80", linetype = "dashed") +
+  geom_line(linewidth = 0.7) +
+  geom_point(size = 2.5) +
+  scale_colour_brewer(palette = "Dark2") +
+  labs(title = "Exact LOO: per-fold log predictive density",
+       x = "Held-out observation index", y = "log p(y_i | y_{−i})",
+       colour = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "top")
+```
+
+```{r}
+#| label: fig-exact-vs-psis
+#| fig-cap: "Exact LOO ELPD vs PSIS-LOO ELPD (season model, models included in both). The dashed line is y = x; points above it mean PSIS-LOO is over-optimistic."
+#| fig-height: 4
+#| fig-width: 5
+
+# PSIS-LOO ELPD = -0.5 * LOOIC
+psis_elpd <- tibble(
+  model  = c("Ordered Dirichlet", "Coupled Ord. Dirichlet", "ZADR (fixed θ)"),
+  psis   = -0.5 * c(
+    loo_list$ord_season$estimates["looic", "Estimate"],
+    loo_list$coupled_season$estimates["looic", "Estimate"],
+    loo_list$zadr_season$estimates["looic", "Estimate"]
+  )
+)
+
+exact_vs_psis <- exact_lpd_summary |>
+  select(model, exact = ELPD) |>
+  left_join(psis_elpd, by = "model")
+
+ggplot(exact_vs_psis, aes(x = psis, y = exact, colour = model, label = model)) +
+  geom_abline(slope = 1, intercept = 0, colour = "grey70", linetype = "dashed") +
+  geom_point(size = 3.5) +
+  ggrepel::geom_text_repel(size = 3, show.legend = FALSE) +
+  scale_colour_brewer(palette = "Dark2") +
+  labs(title = "Exact LOO vs PSIS-LOO ELPD",
+       x = "PSIS-LOO ELPD", y = "Exact LOO ELPD",
+       colour = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none")
+```
+
+------------------------------------------------------------------------
+
+## Posterior Predictive Checks
+
+We compare each model's ability to reproduce two key features of the observed data: (1) the mean proportion per prey item and (2) the proportion of zero entries per prey item.
+
+```{r}
+#| label: ppc-helpers
+
+# rdirichlet for simulation
+rdirichlet <- function(n, alpha) {
+  k <- length(alpha)
+  x <- matrix(rgamma(n * k, rep(alpha, each = n)), nrow = n, ncol = k)
+  x / rowSums(x)
+}
+
+# Simulate from ordered dirichlet given beta (P x K), tau, delta, X
+sim_ord <- function(X, beta, tau, delta) {
+  N_s <- nrow(X)
+  K_s <- ncol(beta)
+  Y   <- matrix(0.0, N_s, K_s)
+  for (i in seq_len(N_s)) {
+    theta_i <- as.vector(t(beta) %*% X[i, ])
+    phi_i   <- exp(sum(delta * X[i, ]))
+    mu_i    <- exp(theta_i - max(theta_i)); mu_i <- mu_i / sum(mu_i)
+    rho_i   <- plogis(theta_i - tau)
+    repeat {
+      active <- rbinom(K_s, 1L, rho_i) == 1L
+      if (any(active)) break
+    }
+    idx <- which(active)
+    if (length(idx) == 1L) {
+      Y[i, idx] <- 1.0
+    } else {
+      mu_a <- mu_i[idx] / sum(mu_i[idx])
+      Y[i, idx] <- rdirichlet(1L, phi_i * mu_a)
+    }
+  }
+  Y
+}
+
+# Summarise Y_rep: mean proportion + P(zero) per prey
+summarise_y <- function(Y_mat, prey_nms) {
+  tibble(
+    prey      = rep(prey_nms, 2),
+    stat      = rep(c("Mean proportion", "P(zero)"), each = length(prey_nms)),
+    value     = c(colMeans(Y_mat), colMeans(Y_mat == 0))
+  )
+}
+
+obs_summary <- summarise_y(Y_prop, prey_names) |> rename(obs = value)
+
+# Simulate from coupled ordered Dirichlet: beta (P x K), a_rho, tau, delta
+sim_coupled <- function(X, beta, a_rho, tau, delta) {
+  N_s <- nrow(X)
+  K_s <- ncol(beta)
+  Y   <- matrix(0.0, N_s, K_s)
+  for (i in seq_len(N_s)) {
+    theta_i <- as.vector(t(beta) %*% X[i, ])
+    phi_i   <- exp(sum(delta * X[i, ]))
+    mu_i    <- exp(theta_i - max(theta_i)); mu_i <- mu_i / sum(mu_i)
+    rho_i   <- plogis(a_rho * theta_i - tau)
+    z       <- rbinom(K_s, 1L, rho_i)
+    A       <- which(z == 1L)
+    if (length(A) == 0L) {
+      # all-zero row
+    } else if (length(A) == 1L) {
+      Y[i, A] <- 1.0
+    } else {
+      mu_A    <- mu_i[A] / sum(mu_i[A])
+      Y[i, A] <- rdirichlet(1L, phi_i * mu_A)
+    }
+  }
+  Y
+}
+
+# Simulate one replicate from ZADR given beta (P x K), phi, and observed Y
+sim_zadr <- function(X, beta, phi, Y_obs) {
+  N_s <- nrow(X)
+  K_s <- ncol(beta)
+  Y   <- matrix(0.0, N_s, K_s)
+  for (i in seq_len(N_s)) {
+    mu_full <- as.vector(exp(t(beta) %*% X[i, ]))
+    mu_full <- mu_full / sum(mu_full)
+    active  <- Y_obs[i, ] > 0
+    if (!any(active)) active[which.max(mu_full)] <- TRUE
+    if (sum(active) == 1L) {
+      Y[i, active] <- 1.0
+    } else {
+      mu_act      <- mu_full[active] / sum(mu_full[active])
+      Y[i, active] <- rdirichlet(1L, phi * mu_act)
+    }
+  }
+  Y
+}
+```
+
+### zoid
+
+```{r}
+#| label: ppc-zoid
+S_ppc <- 100L
+
+# zoid: use get_fitted() for posterior mean predictions per observation
+fitted_season <- get_fitted(fit_zoid_season)
+
+# get_fitted returns obs/group/mean per prey.
+# group may be a numeric index (1:K) rather than a prey name, so we map
+# by position (zoid preserves column order from data_raw).
+zoid_wide <- fitted_season |>
+  select(obs, group, mean) |>
+  pivot_wider(names_from = group, values_from = mean) |>
+  select(-obs)
+stopifnot(ncol(zoid_wide) == K)
+colnames(zoid_wide) <- prey_names          # map by position
+zoid_mean_mat <- as.matrix(zoid_wide)
+
+# For PPC replications sample from the posterior predictive draws of zoid
+# zoid stores draws as log_lik only; use posterior mean as point PPC overlay
+zoid_ppc_summary <- summarise_y(zoid_mean_mat, prey_names) |>
+  rename(pred = value)
+```
+
+### Ordered Dirichlet
+
+```{r}
+#| label: ppc-ord
+draws_season <- fit_ord_season$draws(c("beta_raw", "tau", "delta"),
+                                      format = "df") |>
+  select(-starts_with(".")) |>
+  slice_sample(n = S_ppc)
+
+P_s <- ncol(X_season)
+
+ord_ppc_rows    <- vector("list", S_ppc)
+yrep_ord_full   <- matrix(0.0, nrow = S_ppc, ncol = N * K)  # S × (N*K), column-major
+
+for (s in seq_len(S_ppc)) {
+  br_cols <- paste0("beta_raw[", rep(seq_len(P_s), K - 1L), ",",
+                    rep(seq_len(K - 1L), each = P_s), "]")
+  beta_s  <- cbind(
+    matrix(as.numeric(draws_season[s, br_cols]), nrow = P_s, ncol = K - 1L),
+    0
+  )
+  tau_s   <- as.numeric(draws_season$tau[s])
+  delta_s <- as.numeric(draws_season[s, paste0("delta[", seq_len(P_s), "]")])
+
+  Y_rep <- sim_ord(X_season, beta_s, tau_s, delta_s)
+  yrep_ord_full[s, ] <- as.vector(Y_rep)   # column-major: prey k in cols (k-1)*N+1 : k*N
+
+  ord_ppc_rows[[s]] <- data.frame(
+    draw  = s,
+    prey  = rep(prey_names, 2),
+    stat  = rep(c("Mean proportion", "P(zero)"), each = K),
+    value = c(colMeans(Y_rep), colMeans(Y_rep == 0))
+  )
+}
+ord_ppc_df <- do.call(rbind, ord_ppc_rows)
+```
+
+### ZADR
+
+```{r}
+#| label: ppc-zadr
+P_zadr <- ncol(X_season)
+
+zadr_ppc_rows  <- vector("list", S_ppc)
+yrep_zadr_full <- matrix(0.0, nrow = S_ppc, ncol = N * K)
+
+draws_zadr <- fit_zadr_season$draws(c("beta_raw", "phi"), format = "df") |>
+  select(-starts_with(".")) |>
+  slice_sample(n = S_ppc)
+
+for (s in seq_len(S_ppc)) {
+  br_cols  <- paste0("beta_raw[", rep(seq_len(P_zadr), K - 1L), ",",
+                     rep(seq_len(K - 1L), each = P_zadr), "]")
+  # ZADR: beta[,1] = 0 (reference), beta[,2:K] = beta_raw[,1:(K-1)]
+  beta_s   <- cbind(
+    rep(0, P_zadr),
+    matrix(as.numeric(draws_zadr[s, br_cols]), nrow = P_zadr, ncol = K - 1L)
+  )
+  phi_s    <- as.numeric(draws_zadr$phi[s])
+
+  Y_rep <- sim_zadr(X_season, beta_s, phi_s, Y_prop)
+  yrep_zadr_full[s, ] <- as.vector(Y_rep)
+
+  zadr_ppc_rows[[s]] <- data.frame(
+    draw  = s,
+    prey  = rep(prey_names, 2),
+    stat  = rep(c("Mean proportion", "P(zero)"), each = K),
+    value = c(colMeans(Y_rep), colMeans(Y_rep == 0))
+  )
+}
+zadr_ppc_df <- do.call(rbind, zadr_ppc_rows)
+yrep_zadr_full[!is.finite(yrep_zadr_full)] <- 0
+```
+
+### Bayesian ZADR
+
+```{r}
+#| label: ppc-zadr-bayes
+
+zadr_bayes_ppc_rows  <- vector("list", S_ppc)
+yrep_zadr_bayes_full <- matrix(0.0, nrow = S_ppc, ncol = N * K)
+
+draws_zadr_bayes <- fit_zadr_bayes_season$draws(
+  c("beta_raw", "phi", paste0("theta[", seq_len(B), "]")),
+  format = "df"
+) |>
+  select(-starts_with(".")) |>
+  slice_sample(n = S_ppc)
+
+for (s in seq_len(S_ppc)) {
+  br_cols_b <- paste0("beta_raw[", rep(seq_len(P_zadr), K - 1L), ",",
+                      rep(seq_len(K - 1L), each = P_zadr), "]")
+  beta_sb <- cbind(
+    rep(0, P_zadr),
+    matrix(as.numeric(draws_zadr_bayes[s, br_cols_b]), nrow = P_zadr, ncol = K - 1L)
+  )
+  phi_sb   <- as.numeric(draws_zadr_bayes$phi[s])
+  # Compute per-observation log_theta from this draw's theta simplex
+  theta_sb <- as.numeric(draws_zadr_bayes[s, paste0("theta[", seq_len(B), "]")])
+  log_theta_sb <- log(theta_sb[pattern_id])
+
+  Y_rep <- matrix(0.0, N, K)
+  for (i in seq_len(N)) {
+    mu_full <- as.vector(exp(t(beta_sb) %*% X_season[i, ]))
+    mu_full <- mu_full / sum(mu_full)
+    active  <- Y_prop[i, ] > 0
+    if (!any(active)) active[which.max(mu_full)] <- TRUE
+    if (sum(active) == 1L) {
+      Y_rep[i, active] <- 1.0
+    } else {
+      mu_act           <- mu_full[active] / sum(mu_full[active])
+      Y_rep[i, active] <- rdirichlet(1L, phi_sb * mu_act)
+    }
+  }
+  yrep_zadr_bayes_full[s, ] <- as.vector(Y_rep)
+
+  zadr_bayes_ppc_rows[[s]] <- data.frame(
+    draw  = s,
+    prey  = rep(prey_names, 2),
+    stat  = rep(c("Mean proportion", "P(zero)"), each = K),
+    value = c(colMeans(Y_rep), colMeans(Y_rep == 0))
+  )
+}
+zadr_bayes_ppc_df <- do.call(rbind, zadr_bayes_ppc_rows)
+yrep_zadr_bayes_full[!is.finite(yrep_zadr_bayes_full)] <- 0
+```
+
+### Coupled Ordered Dirichlet
+
+```{r}
+#| label: ppc-coupled
+P_coupled <- ncol(X_season)
+
+coupled_ppc_rows  <- vector("list", S_ppc)
+yrep_coupled_full <- matrix(0.0, nrow = S_ppc, ncol = N * K)
+
+draws_coupled <- fit_coupled_season$draws(
+  c("beta_raw", "tau", "a_rho", "delta"),
+  format = "df"
+) |>
+  select(-starts_with(".")) |>
+  slice_sample(n = S_ppc)
+
+for (s in seq_len(S_ppc)) {
+  br_cols_c <- paste0("beta_raw[", rep(seq_len(P_coupled), K - 1L), ",",
+                      rep(seq_len(K - 1L), each = P_coupled), "]")
+  # Coupled: reference category is K (beta[,K] = 0)
+  beta_sc <- cbind(
+    matrix(as.numeric(draws_coupled[s, br_cols_c]), nrow = P_coupled, ncol = K - 1L),
+    0
+  )
+  tau_sc   <- as.numeric(draws_coupled$tau[s])
+  a_rho_sc <- as.numeric(draws_coupled$a_rho[s])
+  delta_sc <- as.numeric(draws_coupled[s, paste0("delta[", seq_len(P_coupled), "]")])
+
+  Y_rep <- sim_coupled(X_season, beta_sc, a_rho_sc, tau_sc, delta_sc)
+  yrep_coupled_full[s, ] <- as.vector(Y_rep)
+
+  coupled_ppc_rows[[s]] <- data.frame(
+    draw  = s,
+    prey  = rep(prey_names, 2),
+    stat  = rep(c("Mean proportion", "P(zero)"), each = K),
+    value = c(colMeans(Y_rep), colMeans(Y_rep == 0))
+  )
+}
+coupled_ppc_df <- do.call(rbind, coupled_ppc_rows)
+yrep_coupled_full[!is.finite(yrep_coupled_full)] <- 0
+```
+
+```{r}
+#| label: fig-ppc
+#| fig-cap: "Posterior predictive check (Season model). Distributions show replicated statistics across 100 posterior draws. Red line is the observed value. Left: mean proportion; right: P(zero)."
+#| fig-height: 18
+#| fig-width: 9
+
+ord_ppc_plot <- ggplot(ord_ppc_df, aes(x = value)) +
+  geom_histogram(bins = 35, fill = "#1b7837", alpha = 0.6, colour = NA) +
+  geom_vline(data = obs_summary, aes(xintercept = obs),
+             colour = "red", linewidth = 0.7) +
+  facet_grid(prey ~ stat, scales = "free_x") +
+  labs(title = "Ordered Dirichlet (Season)", x = NULL, y = NULL) +
+  theme_minimal(base_size = 9) +
+  theme(strip.text.y = element_text(size = 7))
+
+zadr_ppc_plot <- ggplot(zadr_ppc_df, aes(x = value)) +
+  geom_histogram(bins = 35, fill = "#762a83", alpha = 0.6, colour = NA) +
+  geom_vline(data = obs_summary, aes(xintercept = obs),
+             colour = "red", linewidth = 0.7) +
+  facet_grid(prey ~ stat, scales = "free_x") +
+  labs(title = "ZADR (Season)", x = NULL, y = NULL) +
+  theme_minimal(base_size = 9) +
+  theme(strip.text.y = element_text(size = 7))
+
+zoid_obs <- left_join(obs_summary, zoid_ppc_summary, by = c("prey", "stat"))
+
+zoid_ppc_plot <- ggplot(zoid_obs, aes(x = prey)) +
+  geom_segment(aes(xend = prey, y = obs, yend = pred),
+               colour = "grey60", linewidth = 0.6) +
+  geom_point(aes(y = obs),  colour = "red",     size = 2.5, shape = 18) +
+  geom_point(aes(y = pred), colour = "#2c7bb6", size = 2) +
+  coord_flip() +
+  facet_wrap(~stat, scales = "free_x") +
+  labs(title = "zoid (Season): posterior mean vs observed",
+       subtitle = "Red = observed  |  Blue = posterior mean prediction",
+       x = NULL, y = NULL) +
+  theme_minimal(base_size = 9)
+
+zadr_bayes_ppc_plot <- ggplot(zadr_bayes_ppc_df, aes(x = value)) +
+  geom_histogram(bins = 35, fill = "#4d004b", alpha = 0.6, colour = NA) +
+  geom_vline(data = obs_summary, aes(xintercept = obs),
+             colour = "red", linewidth = 0.7) +
+  facet_grid(prey ~ stat, scales = "free_x") +
+  labs(title = "ZADR Bayes θ (Season)", x = NULL, y = NULL) +
+  theme_minimal(base_size = 9) +
+  theme(strip.text.y = element_text(size = 7))
+
+coupled_ppc_plot <- ggplot(coupled_ppc_df, aes(x = value)) +
+  geom_histogram(bins = 35, fill = "#d95f02", alpha = 0.6, colour = NA) +
+  geom_vline(data = obs_summary, aes(xintercept = obs),
+             colour = "red", linewidth = 0.7) +
+  facet_grid(prey ~ stat, scales = "free_x") +
+  labs(title = "Coupled Ord. Dirichlet (Season)", x = NULL, y = NULL) +
+  theme_minimal(base_size = 9) +
+  theme(strip.text.y = element_text(size = 7))
+
+zoid_ppc_plot / ord_ppc_plot / zadr_ppc_plot / zadr_bayes_ppc_plot / coupled_ppc_plot +
+  plot_layout(heights = c(1, 3, 3, 3, 3))
+```
+
+------------------------------------------------------------------------
+
+## Bayesplot: Posterior Predictive Distributions
+
+```{r}
+#| label: setup-bayesplot
+#| cache: false
+library(bayesplot)
+color_scheme_set("viridis")
+
+# y_obs_vec: column-major vectorisation of Y_prop.
+# Prey k occupies columns (k-1)*N + 1 : k*N in yrep_ord_full.
+y_obs_vec <- as.vector(Y_prop)
+```
+
+```{r}
+#| label: fig-bp-ecdf
+#| fig-cap: "ECDF overlay per prey item (Ordered Dirichlet). Each thin line is one posterior predictive draw; the dark line is the observed ECDF. The spike at 0 reflects structural zeros."
+#| fig-height: 8
+#| fig-width: 10
+
+ecdf_plots <- lapply(seq_len(K), function(k) {
+  idx <- (k - 1L) * N + seq_len(N)
+  ppc_ecdf_overlay(
+    y    = y_obs_vec[idx],
+    yrep = yrep_ord_full[, idx, drop = FALSE]
+  ) +
+    ggtitle(prey_names[k]) +
+    theme(plot.title = element_text(size = 8),
+          axis.text  = element_text(size = 7))
+})
+
+bayesplot_grid(plots = ecdf_plots, grid_args = list(ncol = 4L))
+```
+
+```{r}
+#| label: fig-bp-stats
+#| fig-cap: "Posterior predictive test statistics (Ordered Dirichlet, all prey items pooled). The observed statistic (vertical line) should fall within the predictive distribution."
+#| fig-height: 4
+#| fig-width: 9
+
+p_zero_stat <- ppc_stat(
+  y    = y_obs_vec,
+  yrep = yrep_ord_full,
+  stat = function(y) mean(y == 0)
+) + labs(title = "Proportion of structural zeros")
+
+p_mean_stat <- ppc_stat(
+  y    = y_obs_vec,
+  yrep = yrep_ord_full,
+  stat = "mean"
+) + labs(title = "Mean proportion (all prey)")
+
+p_sd_stat <- ppc_stat(
+  y    = y_obs_vec,
+  yrep = yrep_ord_full,
+  stat = "sd"
+) + labs(title = "SD of proportions")
+
+p_zero_stat + p_mean_stat + p_sd_stat
+```
+
+------------------------------------------------------------------------
+
+## Predictive Performance: RMSE and Classification
+
+```{r}
+#| label: perf-metrics
+
+# ── Zoid posterior predictive draws ─────────────────────────────────────────
+# Try to extract y_rep from the rstan fit; simulate if not present.
+zoid_par_names <- names(rstan::extract(fit_zoid_season$model))
+cat("zoid generated quantities:", paste(grep("y_rep|yrep", zoid_par_names,
+                                              value = TRUE), collapse = ", "), "\n")
+
+if (any(grepl("^y_rep$", zoid_par_names))) {
+  y_rep_z <- rstan::extract(fit_zoid_season$model, "y_rep")$y_rep
+  # shape S × N × K  → subsample and vectorise
+  idx_z          <- sample(dim(y_rep_z)[1], S_ppc)
+  yrep_zoid_full <- t(apply(y_rep_z[idx_z, , , drop = FALSE], 1L, as.vector))
+  cat("Using y_rep from zoid Stan model.\n")
+} else {
+  # Fallback: use rstan::extract() to get raw draws, or simulate from
+  # per-observation posterior means when individual draws are unavailable.
+  all_draws_z    <- rstan::extract(fit_zoid_season$model)
+  zoid_all_names <- names(all_draws_z)
+  cat("zoid Stan parameters:", paste(head(zoid_all_names, 15), collapse = ", "), "\n")
+
+  # zoid typically stores theta (N × K log-mean) and phi (overdispersion)
+  theta_candidates <- grep("^theta|^mu|^p$|^alpha", zoid_all_names, value = TRUE)
+
+  if (length(theta_candidates) > 0L) {
+    theta_nm  <- theta_candidates[1L]
+    theta_arr <- all_draws_z[[theta_nm]]          # S × N × K  (or S × K)
+    phi_arr   <- if ("phi_vec" %in% zoid_all_names) all_draws_z$phi_vec
+                 else if ("phi" %in% zoid_all_names) all_draws_z$phi
+                 else rep(1, dim(theta_arr)[1])
+
+    idx_z <- sample(dim(theta_arr)[1], S_ppc, replace = TRUE)
+    yrep_zoid_full <- matrix(0.0, S_ppc, N * K)
+    for (s in seq_len(S_ppc)) {
+      th_s  <- if (length(dim(theta_arr)) == 3L) theta_arr[idx_z[s], , ]
+               else matrix(theta_arr[idx_z[s], ], N, K, byrow = TRUE)
+      ph_s  <- if (length(phi_arr) >= idx_z[s]) phi_arr[idx_z[s]] else 1
+      Y_z   <- matrix(0.0, N, K)
+      for (i in seq_len(N)) {
+        mu_i  <- exp(th_s[i, ]); mu_i <- mu_i / sum(mu_i)
+        rho_i <- pmin(pmax(mu_i * K / 2, 0.05), 0.95)
+        repeat { active <- rbinom(K, 1L, rho_i) == 1L; if (any(active)) break }
+        idx_a <- which(active)
+        if (length(idx_a) == 1L) { Y_z[i, idx_a] <- 1
+        } else {
+          a <- pmax(ph_s * mu_i[idx_a], 1e-4)
+          Y_z[i, idx_a] <- rdirichlet(1L, a)
+        }
+      }
+      yrep_zoid_full[s, ] <- as.vector(Y_z)
+    }
+    cat("Simulated zoid PPC from rstan theta draws.\n")
+  } else {
+    # Last resort: simulate around per-observation posterior means
+    # (uncertainty is from Dirichlet sampling only, not posterior parameter draws)
+    phi_summary  <- get_pars(fit_zoid_season)
+    phi_val      <- tryCatch(median(phi_summary$phi$mean, na.rm = TRUE),
+                             error = function(e) 1.0)
+    if (is.na(phi_val) || !is.finite(phi_val)) phi_val <- 1.0
+
+    yrep_zoid_full <- matrix(0.0, S_ppc, N * K)
+    for (s in seq_len(S_ppc)) {
+      Y_z <- matrix(0.0, N, K)
+      for (i in seq_len(N)) {
+        mu_i  <- pmax(zoid_mean_mat[i, ], 1e-8); mu_i <- mu_i / sum(mu_i)
+        rho_i <- pmin(pmax(mu_i * K / 2, 0.05), 0.95)
+        repeat { active <- rbinom(K, 1L, rho_i) == 1L; if (any(active)) break }
+        idx_a <- which(active)
+        if (length(idx_a) == 1L) { Y_z[i, idx_a] <- 1
+        } else {
+          a <- pmax(phi_val * mu_i[idx_a], 1e-4)
+          Y_z[i, idx_a] <- rdirichlet(1L, a)
+        }
+      }
+      yrep_zoid_full[s, ] <- as.vector(Y_z)
+    }
+    cat("Simulated zoid PPC from posterior mean + Dirichlet noise (approximate).\n")
+  }
+}
+
+# Sanitise: replace any NaN/Inf in zoid predictions with 0
+yrep_zoid_full[!is.finite(yrep_zoid_full)] <- 0
+
+# ── RMSE ─────────────────────────────────────────────────────────────────────
+rmse_ord  <- apply(yrep_ord_full,  1L, function(yh) sqrt(mean((yh - y_obs_vec)^2)))
+rmse_zoid <- apply(yrep_zoid_full, 1L, function(yh) sqrt(mean((yh - y_obs_vec)^2)))
+rmse_zadr       <- apply(yrep_zadr_full,       1L, function(yh) sqrt(mean((yh - y_obs_vec)^2)))
+rmse_zadr_bayes <- apply(yrep_zadr_bayes_full, 1L, function(yh) sqrt(mean((yh - y_obs_vec)^2)))
+rmse_coupled    <- apply(yrep_coupled_full,    1L, function(yh) sqrt(mean((yh - y_obs_vec)^2)))
+
+# ── Percent correctly classified (zero vs non-zero) ──────────────────────────
+pcc_ord  <- apply(yrep_ord_full,  1L, function(yh) mean((yh > 0) == (y_obs_vec > 0)))
+pcc_zoid <- apply(yrep_zoid_full, 1L, function(yh) mean((yh > 0) == (y_obs_vec > 0)))
+pcc_zadr       <- apply(yrep_zadr_full,       1L, function(yh) mean((yh > 0) == (y_obs_vec > 0)))
+pcc_zadr_bayes <- apply(yrep_zadr_bayes_full, 1L, function(yh) mean((yh > 0) == (y_obs_vec > 0)))
+pcc_coupled    <- apply(yrep_coupled_full,    1L, function(yh) mean((yh > 0) == (y_obs_vec > 0)))
+
+q <- function(x, p) quantile(x, p, na.rm = TRUE)
+cat(sprintf("\nOrdered Dirichlet      — RMSE: %.4f [%.4f, %.4f]  PCC: %.3f [%.3f, %.3f]\n",
+            median(rmse_ord, na.rm=TRUE), q(rmse_ord, .05), q(rmse_ord, .95),
+            median(pcc_ord,  na.rm=TRUE), q(pcc_ord,  .05), q(pcc_ord,  .95)))
+cat(sprintf("Coupled Ord. Dirichlet — RMSE: %.4f [%.4f, %.4f]  PCC: %.3f [%.3f, %.3f]\n",
+            median(rmse_coupled, na.rm=TRUE), q(rmse_coupled, .05), q(rmse_coupled, .95),
+            median(pcc_coupled,  na.rm=TRUE), q(pcc_coupled,  .05), q(pcc_coupled,  .95)))
+cat(sprintf("ZADR (fixed θ)         — RMSE: %.4f [%.4f, %.4f]  PCC: %.3f [%.3f, %.3f]\n",
+            median(rmse_zadr, na.rm=TRUE), q(rmse_zadr, .05), q(rmse_zadr, .95),
+            median(pcc_zadr,  na.rm=TRUE), q(pcc_zadr,  .05), q(pcc_zadr,  .95)))
+cat(sprintf("ZADR (Bayes θ)         — RMSE: %.4f [%.4f, %.4f]  PCC: %.3f [%.3f, %.3f]\n",
+            median(rmse_zadr_bayes, na.rm=TRUE), q(rmse_zadr_bayes, .05), q(rmse_zadr_bayes, .95),
+            median(pcc_zadr_bayes,  na.rm=TRUE), q(pcc_zadr_bayes,  .05), q(pcc_zadr_bayes,  .95)))
+cat(sprintf("zoid                   — RMSE: %.4f [%.4f, %.4f]  PCC: %.3f [%.3f, %.3f]\n",
+            median(rmse_zoid, na.rm=TRUE), q(rmse_zoid, .05), q(rmse_zoid, .95),
+            median(pcc_zoid,  na.rm=TRUE), q(pcc_zoid,  .05), q(pcc_zoid,  .95)))
+```
+
+```{r}
+#| label: fig-rmse-pcc
+#| fig-cap: "Posterior predictive RMSE and percent correctly classified (zero vs non-zero) across 100 draws. Overlapping distributions indicate similar predictive accuracy."
+#| fig-height: 4
+#| fig-width: 9
+
+perf_df <- bind_rows(
+  data.frame(model = "Ordered Dirichlet",      metric = "RMSE", value = rmse_ord),
+  data.frame(model = "Coupled Ord. Dirichlet", metric = "RMSE", value = rmse_coupled),
+  data.frame(model = "ZADR (fixed θ)",         metric = "RMSE", value = rmse_zadr),
+  data.frame(model = "ZADR (Bayes θ)",         metric = "RMSE", value = rmse_zadr_bayes),
+  data.frame(model = "zoid",                   metric = "RMSE", value = rmse_zoid),
+  data.frame(model = "Ordered Dirichlet",      metric = "PCC (zero vs non-zero)",
+             value = pcc_ord),
+  data.frame(model = "Coupled Ord. Dirichlet", metric = "PCC (zero vs non-zero)",
+             value = pcc_coupled),
+  data.frame(model = "ZADR (fixed θ)",         metric = "PCC (zero vs non-zero)",
+             value = pcc_zadr),
+  data.frame(model = "ZADR (Bayes θ)",         metric = "PCC (zero vs non-zero)",
+             value = pcc_zadr_bayes),
+  data.frame(model = "zoid",                   metric = "PCC (zero vs non-zero)",
+             value = pcc_zoid)
+)
+
+ggplot(perf_df, aes(x = value, fill = model, colour = model)) +
+  geom_density(alpha = 0.4, linewidth = 0.8) +
+  facet_wrap(~metric, scales = "free_x") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_colour_brewer(palette = "Dark2") +
+  labs(x = NULL, y = "Density", fill = NULL, colour = NULL,
+       title = "Predictive performance distributions (100 posterior draws)") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "top")
+```
+
+---
+
+## Three-way Predictive Decomposition
+
+Every entry $y_{ik}$ falls into exactly one of three regions: a structural zero
+($y = 0$), a concentrated one ($y = 1$, meaning the entire composition is in
+that single category for that observation), or a continuous interior value
+($0 < y < 1$). The plot below compares how much mass each model's posterior
+predictive distribution places in each region against the observed data.
+
+```{r}
+#| label: mix-props
+
+# Per-draw proportions of zeros, ones, and interior values across all N*K cells
+mix_props <- function(yrep, eps = 1e-9) {
+  t(apply(yrep, 1L, function(row) c(
+    `Zero (y = 0)`         = mean(row <= eps),
+    `One (y = 1)`          = mean(row >= 1 - eps),
+    `Interior (0 < y < 1)` = mean(row > eps & row < 1 - eps)
+  )))
+}
+
+mix_ord        <- mix_props(yrep_ord_full)
+mix_zoid       <- mix_props(yrep_zoid_full)
+mix_zadr       <- mix_props(yrep_zadr_full)
+mix_zadr_bayes <- mix_props(yrep_zadr_bayes_full)
+mix_coupled    <- mix_props(yrep_coupled_full)
+
+obs_mix <- c(
+  `Zero (y = 0)`         = mean(y_obs_vec <= 1e-9),
+  `One (y = 1)`          = mean(y_obs_vec >= 1 - 1e-9),
+  `Interior (0 < y < 1)` = mean(y_obs_vec > 1e-9 & y_obs_vec < 1 - 1e-9)
+)
+
+cat("Observed proportions:\n")
+print(round(obs_mix, 4))
+cat("\nPosterior predictive medians [90% CI]:\n")
+for (nm in c("Ordered Dirichlet", "Coupled Ord. Dirichlet", "zoid",
+             "ZADR (fixed θ)", "ZADR (Bayes θ)")) {
+  mx <- switch(nm,
+    "Ordered Dirichlet"      = mix_ord,
+    "Coupled Ord. Dirichlet" = mix_coupled,
+    "zoid"                   = mix_zoid,
+    "ZADR (fixed θ)"         = mix_zadr,
+    "ZADR (Bayes θ)"         = mix_zadr_bayes
+  )
+  cat(sprintf("  %-20s  zero=%.3f [%.3f,%.3f]  one=%.3f [%.3f,%.3f]  interior=%.3f [%.3f,%.3f]\n",
+    nm,
+    median(mx[,1]), quantile(mx[,1],.05), quantile(mx[,1],.95),
+    median(mx[,2]), quantile(mx[,2],.05), quantile(mx[,2],.95),
+    median(mx[,3]), quantile(mx[,3],.05), quantile(mx[,3],.95)
+  ))
+}
+
+mix_df <- bind_rows(
+  as.data.frame(mix_ord)        |> mutate(model = "Ordered Dirichlet"),
+  as.data.frame(mix_coupled)    |> mutate(model = "Coupled Ord. Dirichlet"),
+  as.data.frame(mix_zoid)       |> mutate(model = "zoid"),
+  as.data.frame(mix_zadr)       |> mutate(model = "ZADR (fixed θ)"),
+  as.data.frame(mix_zadr_bayes) |> mutate(model = "ZADR (Bayes θ)")
+) |>
+  pivot_longer(-model, names_to = "component", values_to = "proportion") |>
+  mutate(component = factor(component,
+    levels = c("Zero (y = 0)", "One (y = 1)", "Interior (0 < y < 1)")))
+
+obs_df <- data.frame(
+  component  = factor(names(obs_mix),
+    levels = c("Zero (y = 0)", "One (y = 1)", "Interior (0 < y < 1)")),
+  proportion = as.numeric(obs_mix)
+)
+```
+
+```{r}
+#| label: fig-mix-props
+#| fig-cap: "Posterior predictive proportion of zeros, ones, and interior (0,1) values per model across all N×K observation–prey cells. Distributions are over 100 draws; dashed red line = observed proportion. Because ZADR conditions on the observed zero pattern, its zero distribution collapses to a spike at the observed fraction."
+#| fig-height: 4
+#| fig-width: 11
+
+ggplot(mix_df, aes(x = proportion, fill = model, colour = model)) +
+  geom_density(alpha = 0.35, linewidth = 0.7, trim = TRUE) +
+  geom_vline(data = obs_df, aes(xintercept = proportion),
+             colour = "red", linewidth = 0.9, linetype = "dashed") +
+  facet_wrap(~ component, scales = "free_x") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_colour_brewer(palette = "Dark2") +
+  labs(x = "Proportion of all N×K cells", y = "Density",
+       fill = NULL, colour = NULL,
+       title = "Three-way decomposition of posterior predictive values") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "top",
+        strip.text = element_text(size = 11, face = "bold"))
+```
+
+---
+
+```{r}
+#| label: fig-bp-ecdf-zoid
+#| fig-cap: "ECDF overlay per prey item (zoid). Each thin line is one posterior predictive draw; the dark line is the observed ECDF. Compare directly with the Ordered Dirichlet ECDF panel above."
+#| fig-height: 8
+#| fig-width: 10
+
+ecdf_plots_zoid <- lapply(seq_len(K), function(k) {
+  idx <- (k - 1L) * N + seq_len(N)
+  ppc_ecdf_overlay(
+    y    = y_obs_vec[idx],
+    yrep = yrep_zoid_full[, idx, drop = FALSE]
+  ) +
+    ggtitle(prey_names[k]) +
+    theme(plot.title = element_text(size = 8),
+          axis.text  = element_text(size = 7))
+})
+
+bayesplot_grid(plots = ecdf_plots_zoid, grid_args = list(ncol = 4L))
+```
+
+```{r}
+#| label: fig-bp-ecdf-zadr
+#| fig-cap: "ECDF overlay per prey item (ZADR). Each thin line is one posterior predictive draw; the dark line is the observed ECDF."
+#| fig-height: 8
+#| fig-width: 10
+
+ecdf_plots_zadr <- lapply(seq_len(K), function(k) {
+  idx <- (k - 1L) * N + seq_len(N)
+  ppc_ecdf_overlay(
+    y    = y_obs_vec[idx],
+    yrep = yrep_zadr_full[, idx, drop = FALSE]
+  ) +
+    ggtitle(prey_names[k]) +
+    theme(plot.title = element_text(size = 8),
+          axis.text  = element_text(size = 7))
+})
+
+bayesplot_grid(plots = ecdf_plots_zadr, grid_args = list(ncol = 4L))
+```
+
+```{r}
+#| label: fig-bp-ecdf-zadr-bayes
+#| fig-cap: "ECDF overlay per prey item (ZADR Bayes θ). Compare with the fixed-θ ZADR panel above."
+#| fig-height: 8
+#| fig-width: 10
+
+ecdf_plots_zadr_bayes <- lapply(seq_len(K), function(k) {
+  idx <- (k - 1L) * N + seq_len(N)
+  ppc_ecdf_overlay(
+    y    = y_obs_vec[idx],
+    yrep = yrep_zadr_bayes_full[, idx, drop = FALSE]
+  ) +
+    ggtitle(prey_names[k]) +
+    theme(plot.title = element_text(size = 8),
+          axis.text  = element_text(size = 7))
+})
+
+bayesplot_grid(plots = ecdf_plots_zadr_bayes, grid_args = list(ncol = 4L))
+```
+
+```{r}
+#| label: fig-bp-scatter
+#| fig-cap: "Bayesplot: posterior predictive intervals vs observed values (Ordered Dirichlet). Each point is one observation × prey combination."
+#| fig-height: 4
+
+# ppc_intervals: y = observed, yrep = S × N, x = x-axis grouping
+# Apply per prey item, show one representative prey with enough variation
+k_show <- which.max(apply(Y_prop, 2, var))   # most variable prey item
+
+ppc_intervals(
+  y    = Y_prop[, k_show],
+  yrep = yrep_ord_full[, (k_show - 1L) * N + seq_len(N)],
+  x    = seq_len(N),
+  prob = 0.5, prob_outer = 0.9
+) +
+  labs(title = sprintf("Posterior predictive intervals: %s", prey_names[k_show]),
+       x = "Observation", y = "Proportion") +
+  theme_minimal(base_size = 12)
+```
+
+------------------------------------------------------------------------
+
+## Comparing Expected Proportions by Season
+
+Here we directly compare the Season-level predictions from each model.
+
+```{r}
+#| label: fig-season-preds
+#| fig-cap: "Model-predicted mean proportion per prey item by Season. Points are posterior means; segments span the 90% CI."
+#| fig-height: 6
+
+# zoid predictions (get_fitted returns per-observation; average by Season).
+# group is a positional index — map to prey_names before summarising.
+zoid_fitted_long <- get_fitted(fit_zoid_season) |>
+  mutate(
+    Season = design_raw$Season[obs],
+    prey   = prey_names[as.integer(group)]
+  ) |>
+  group_by(prey, Season) |>
+  summarise(mean = mean(mean), lo = mean(lo), hi = mean(hi), .groups = "drop") |>
+  mutate(model = "zoid")
+
+# Ordered Dirichlet: simulate from the posterior predictive for each Season.
+# Using simulation (rather than 2^K subset enumeration) is robust to any K.
+# For each draw and each Season level, simulate N_sim observations and average.
+
+sim_ord_single <- function(theta, phi, tau, n_sim = 200L) {
+  K_s <- length(theta)
+  mu  <- exp(theta - max(theta)); mu <- mu / sum(mu)
+  rho <- plogis(theta - tau)
+  Y   <- matrix(0.0, n_sim, K_s)
+  for (i in seq_len(n_sim)) {
+    repeat {
+      active <- rbinom(K_s, 1L, rho) == 1L
+      if (any(active)) break
+    }
+    idx <- which(active)
+    if (length(idx) == 1L) {
+      Y[i, idx] <- 1.0
+    } else {
+      mu_a <- mu[idx] / sum(mu[idx])
+      Y[i, idx] <- rdirichlet(1L, phi * mu_a)
+    }
+  }
+  colMeans(Y)
+}
+
+seasons   <- levels(design_raw$Season)
+X_newdata <- model.matrix(~ Season,
+              data.frame(Season = factor(seasons, levels = seasons)))
+
+S_me <- 200L
+draws_me <- fit_ord_season$draws(c("beta_raw", "tau", "delta"), format = "df") |>
+  select(-starts_with(".")) |>
+  slice_sample(n = S_me)
+
+ord_me_rows <- vector("list", S_me * length(seasons))
+idx_r <- 1L
+for (s in seq_len(S_me)) {
+  br_cols <- paste0("beta_raw[", rep(seq_len(P_s), K - 1L), ",",
+                    rep(seq_len(K - 1L), each = P_s), "]")
+  beta_s  <- cbind(
+    matrix(as.numeric(draws_me[s, br_cols]), nrow = P_s, ncol = K - 1L),
+    0
+  )
+  tau_s   <- as.numeric(draws_me$tau[s])
+  delta_s <- as.numeric(draws_me[s, paste0("delta[", seq_len(P_s), "]")])
+  for (j in seq_along(seasons)) {
+    theta_j <- as.vector(t(beta_s) %*% X_newdata[j, ])
+    phi_j   <- exp(sum(delta_s * X_newdata[j, ]))
+    E_j     <- sim_ord_single(theta_j, phi_j, tau_s)
+    ord_me_rows[[idx_r]] <- data.frame(
+      draw = s, Season = seasons[j],
+      prey = prey_names, E_y = E_j
+    )
+    idx_r <- idx_r + 1L
+  }
+}
+ord_me_df <- do.call(rbind, ord_me_rows)
+
+ord_season_summary <- ord_me_df |>
+  group_by(Season, prey) |>
+  summarise(mean = median(E_y),
+            lo   = quantile(E_y, 0.05),
+            hi   = quantile(E_y, 0.95),
+            .groups = "drop") |>
+  mutate(model = "Ordered Dirichlet")
+
+# Coupled Ordered Dirichlet season predictions
+sim_coupled_single <- function(theta, phi, a_rho, tau, n_sim = 200L) {
+  K_s <- length(theta)
+  mu  <- exp(theta - max(theta)); mu <- mu / sum(mu)
+  rho <- plogis(a_rho * theta - tau)
+  Y   <- matrix(0.0, n_sim, K_s)
+  for (i in seq_len(n_sim)) {
+    z <- rbinom(K_s, 1L, rho)
+    A <- which(z == 1L)
+    if (length(A) == 0L) {
+      # all-zero row
+    } else if (length(A) == 1L) {
+      Y[i, A] <- 1.0
+    } else {
+      mu_a    <- mu[A] / sum(mu[A])
+      Y[i, A] <- rdirichlet(1L, phi * mu_a)
+    }
+  }
+  colMeans(Y)
+}
+
+draws_coupled_me <- fit_coupled_season$draws(
+  c("beta_raw", "tau", "a_rho", "delta"),
+  format = "df"
+) |>
+  select(-starts_with(".")) |>
+  slice_sample(n = S_me)
+
+coupled_me_rows <- vector("list", S_me * length(seasons))
+idx_r4 <- 1L
+for (s in seq_len(S_me)) {
+  br_cols_c2 <- paste0("beta_raw[", rep(seq_len(P_coupled), K - 1L), ",",
+                       rep(seq_len(K - 1L), each = P_coupled), "]")
+  beta_sc2 <- cbind(
+    matrix(as.numeric(draws_coupled_me[s, br_cols_c2]), nrow = P_coupled, ncol = K - 1L),
+    0
+  )
+  tau_sc2   <- as.numeric(draws_coupled_me$tau[s])
+  a_rho_sc2 <- as.numeric(draws_coupled_me$a_rho[s])
+  delta_sc2 <- as.numeric(draws_coupled_me[s, paste0("delta[", seq_len(P_coupled), "]")])
+  for (j in seq_along(seasons)) {
+    theta_j3 <- as.vector(t(beta_sc2) %*% X_newdata[j, ])
+    phi_j3   <- exp(sum(delta_sc2 * X_newdata[j, ]))
+    E_j3     <- sim_coupled_single(theta_j3, phi_j3, a_rho_sc2, tau_sc2)
+    coupled_me_rows[[idx_r4]] <- data.frame(
+      draw = s, Season = seasons[j],
+      prey = prey_names, E_y = E_j3
+    )
+    idx_r4 <- idx_r4 + 1L
+  }
+}
+coupled_me_df <- do.call(rbind, coupled_me_rows)
+
+coupled_season_summary <- coupled_me_df |>
+  group_by(Season, prey) |>
+  summarise(mean = median(E_y),
+            lo   = quantile(E_y, 0.05),
+            hi   = quantile(E_y, 0.95),
+            .groups = "drop") |>
+  mutate(model = "Coupled Ord. Dirichlet")
+
+# ZADR season predictions: simulate from posterior predictive for each Season.
+# Zero pattern is drawn empirically from observed patterns (theta_b = n_b/N).
+sim_zadr_single <- function(theta, phi, n_sim = 200L) {
+  mu_full <- exp(theta - max(theta)); mu_full <- mu_full / sum(mu_full)
+  K_s <- length(theta)
+  Y   <- matrix(0.0, n_sim, K_s)
+  # Sample zero patterns from empirical distribution
+  pattern_rows <- sample(N, n_sim, replace = TRUE)
+  for (i in seq_len(n_sim)) {
+    active <- Y_prop[pattern_rows[i], ] > 0
+    if (!any(active)) active[which.max(mu_full)] <- TRUE
+    if (sum(active) == 1L) {
+      Y[i, active] <- 1.0
+    } else {
+      mu_act      <- mu_full[active] / sum(mu_full[active])
+      Y[i, active] <- rdirichlet(1L, phi * mu_act)
+    }
+  }
+  colMeans(Y)
+}
+
+draws_zadr_me <- fit_zadr_season$draws(c("beta_raw", "phi"), format = "df") |>
+  select(-starts_with(".")) |>
+  slice_sample(n = S_me)
+
+zadr_me_rows <- vector("list", S_me * length(seasons))
+idx_r2 <- 1L
+for (s in seq_len(S_me)) {
+  br_cols_z <- paste0("beta_raw[", rep(seq_len(P_zadr), K - 1L), ",",
+                      rep(seq_len(K - 1L), each = P_zadr), "]")
+  beta_z <- cbind(
+    rep(0, P_zadr),
+    matrix(as.numeric(draws_zadr_me[s, br_cols_z]), nrow = P_zadr, ncol = K - 1L)
+  )
+  phi_z  <- as.numeric(draws_zadr_me$phi[s])
+  for (j in seq_along(seasons)) {
+    theta_j <- as.vector(t(beta_z) %*% X_newdata[j, ])
+    E_j     <- sim_zadr_single(theta_j, phi_z)
+    zadr_me_rows[[idx_r2]] <- data.frame(
+      draw = s, Season = seasons[j],
+      prey = prey_names, E_y = E_j
+    )
+    idx_r2 <- idx_r2 + 1L
+  }
+}
+zadr_me_df <- do.call(rbind, zadr_me_rows)
+
+zadr_season_summary <- zadr_me_df |>
+  group_by(Season, prey) |>
+  summarise(mean = median(E_y),
+            lo   = quantile(E_y, 0.05),
+            hi   = quantile(E_y, 0.95),
+            .groups = "drop") |>
+  mutate(model = "ZADR (fixed θ)")
+
+# Bayesian ZADR season predictions: theta is drawn from the posterior simplex
+draws_zadr_bayes_me <- fit_zadr_bayes_season$draws(
+  c("beta_raw", "phi", paste0("theta[", seq_len(B), "]")),
+  format = "df"
+) |>
+  select(-starts_with(".")) |>
+  slice_sample(n = S_me)
+
+zadr_bayes_me_rows <- vector("list", S_me * length(seasons))
+idx_r3 <- 1L
+for (s in seq_len(S_me)) {
+  br_cols_b2 <- paste0("beta_raw[", rep(seq_len(P_zadr), K - 1L), ",",
+                       rep(seq_len(K - 1L), each = P_zadr), "]")
+  beta_sb2 <- cbind(
+    rep(0, P_zadr),
+    matrix(as.numeric(draws_zadr_bayes_me[s, br_cols_b2]), nrow = P_zadr, ncol = K - 1L)
+  )
+  phi_sb2   <- as.numeric(draws_zadr_bayes_me$phi[s])
+  for (j in seq_along(seasons)) {
+    theta_j2 <- as.vector(t(beta_sb2) %*% X_newdata[j, ])
+    E_j2     <- sim_zadr_single(theta_j2, phi_sb2)
+    zadr_bayes_me_rows[[idx_r3]] <- data.frame(
+      draw = s, Season = seasons[j],
+      prey = prey_names, E_y = E_j2
+    )
+    idx_r3 <- idx_r3 + 1L
+  }
+}
+zadr_bayes_me_df <- do.call(rbind, zadr_bayes_me_rows)
+
+zadr_bayes_season_summary <- zadr_bayes_me_df |>
+  group_by(Season, prey) |>
+  summarise(mean = median(E_y),
+            lo   = quantile(E_y, 0.05),
+            hi   = quantile(E_y, 0.95),
+            .groups = "drop") |>
+  mutate(model = "ZADR (Bayes θ)")
+
+# Observed season means
+obs_season <- as_tibble(Y_prop) |>
+  mutate(Season = design_raw$Season) |>
+  pivot_longer(-Season, names_to = "prey", values_to = "prop") |>
+  group_by(Season, prey) |>
+  summarise(obs_mean = mean(prop), .groups = "drop")
+
+# Combine for plot
+pred_combined <- bind_rows(
+  select(zoid_fitted_long,          prey, Season, mean, lo, hi, model),
+  select(ord_season_summary,        prey, Season, mean, lo, hi, model),
+  select(coupled_season_summary,    prey, Season, mean, lo, hi, model),
+  select(zadr_season_summary,       prey, Season, mean, lo, hi, model),
+  select(zadr_bayes_season_summary, prey, Season, mean, lo, hi, model)
+) |>
+  left_join(obs_season, by = c("prey", "Season"))
+
+ggplot(pred_combined,
+       aes(x = obs_mean, y = mean, colour = model,
+           ymin = lo, ymax = hi)) +
+  geom_abline(slope = 1, intercept = 0, colour = "grey70", linetype = "dashed") +
+  geom_errorbar(width = 0, alpha = 0.4) +
+  geom_point(size = 1.8, alpha = 0.8) +
+  facet_wrap(~Season) +
+  scale_colour_brewer(palette = "Dark2") +
+  labs(
+    title   = "Predicted vs observed mean proportion by Season",
+    x       = "Observed mean proportion",
+    y       = "Posterior predicted mean proportion",
+    colour  = NULL
+  ) +
+  coord_fixed() +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "top")
+```
+
+------------------------------------------------------------------------
+
+## Simulation: Covariate-Driven Zero Patterns
+
+ZADR's advantage in the LOO analysis above rests on the assumption that training zero patterns are representative of test zero patterns. This simulation breaks that assumption: the DGP (a coupled ordered Dirichlet) makes zero patterns **shift with a continuous covariate** $x$. We train on $x \le 0.5$ and test on $x > 0.5$, so the test set contains zero patterns never seen in training. ZADR must fall back to $\log(1/N_\text{train})$ for every test observation; the ordered Dirichlet and coupled model can generalise because they model inclusion through the covariate.
+
+```{r}
+#| label: sim-dgp
+
+# ── DGP parameters ───────────────────────────────────────────────────────────
+N_sim  <- 300L
+K_sim  <- 6L
+P_sim  <- 2L    # intercept + x
+
+# Prey 1–2 activate at low x; prey 4–5 activate at high x; prey 3 & 6 neutral
+beta_sim <- rbind(
+  intercept = c(-1, -0.5,  0.2,  0.2, -0.5, 0),   # last col = 0 (reference)
+  x_effect  = c(-4,  -3,   0.5,   3,   4,   0)
+)
+delta_sim  <- c(log(8), 0)   # phi ~ 8, flat across x
+tau_sim    <- 0
+a_rho_sim  <- 1.5
+
+# Simulate from the coupled ordered Dirichlet DGP
+set.seed(42)
+x_sim_raw <- runif(N_sim)
+X_sim_raw <- cbind(1, x_sim_raw)
+
+Y_sim_raw <- matrix(0.0, N_sim, K_sim)
+for (i in seq_len(N_sim)) {
+  theta_i <- as.vector(t(beta_sim) %*% X_sim_raw[i, ])
+  mu_i    <- exp(theta_i - max(theta_i)); mu_i <- mu_i / sum(mu_i)
+  rho_i   <- plogis(a_rho_sim * theta_i - tau_sim)
+  phi_i   <- exp(sum(delta_sim * X_sim_raw[i, ]))
+  z       <- rbinom(K_sim, 1L, rho_i)
+  A       <- which(z == 1L)
+  if (length(A) == 0L) next
+  if (length(A) == 1L) { Y_sim_raw[i, A] <- 1.0; next }
+  mu_A    <- mu_i[A] / sum(mu_i[A])
+  Y_sim_raw[i, A] <- c(rdirichlet(1L, phi_i * mu_A))
+}
+
+# Drop all-zero rows; normalise to simplex
+keep_s   <- rowSums(Y_sim_raw) > 0
+Y_sim_r  <- Y_sim_raw[keep_s, ]
+x_sim_r  <- x_sim_raw[keep_s]
+X_sim_r  <- X_sim_raw[keep_s, ]
+Y_sim_r  <- Y_sim_r / rowSums(Y_sim_r)
+N_sim_r  <- nrow(Y_sim_r)
+
+# Train / test split at x = 0.5
+tr_s  <- x_sim_r <= 0.5
+te_s  <- !tr_s
+Y_tr  <- Y_sim_r[tr_s, ];  X_tr  <- X_sim_r[tr_s, ]
+Y_te  <- Y_sim_r[te_s, ];  X_te  <- X_sim_r[te_s, ]
+N_tr  <- sum(tr_s);          N_te  <- sum(te_s)
+
+cat(sprintf("N_train = %d   N_test = %d\n", N_tr, N_te))
+
+# How many test zero-patterns are unseen in training?
+pats_tr <- apply(Y_tr > 0, 1, paste, collapse = ",")
+pats_te <- apply(Y_te > 0, 1, paste, collapse = ",")
+cat(sprintf("Unique train patterns: %d   Test patterns unseen in train: %d / %d\n",
+            length(unique(pats_tr)),
+            sum(!pats_te %in% unique(pats_tr)), N_te))
+```
+
+```{r}
+#| label: fig-sim-dgp
+#| fig-cap: "True inclusion probability ρ_k(x) for each simulated prey. The dashed line marks the train/test split at x = 0.5. Prey 1–2 dominate at low x; prey 4–5 dominate at high x."
+#| fig-height: 3.5
+#| fig-width: 7
+
+x_seq    <- seq(0, 1, by = 0.005)
+X_seq    <- cbind(1, x_seq)
+prey_lbl <- paste0("prey_", seq_len(K_sim))
+
+rho_df <- do.call(rbind, lapply(seq_len(K_sim), function(k) {
+  theta_k <- as.vector(X_seq %*% beta_sim[, k])
+  data.frame(x = x_seq, prey = prey_lbl[k],
+             rho = plogis(a_rho_sim * theta_k - tau_sim))
+}))
+
+ggplot(rho_df, aes(x = x, y = rho, colour = prey)) +
+  geom_line(linewidth = 1) +
+  geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey30") +
+  annotate("text", x = 0.25, y = 0.97, label = "Train", size = 3.5, colour = "grey30") +
+  annotate("text", x = 0.75, y = 0.97, label = "Test",  size = 3.5, colour = "grey30") +
+  scale_colour_brewer(palette = "Dark2") +
+  labs(title = "True inclusion probability by covariate",
+       x = "x", y = expression(rho[k](x)), colour = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "top")
+```
+
+```{r}
+#| label: sim-fit
+#| cache: true
+
+sim_args4 <- list(chains = 4L, parallel_chains = 4L,
+                  iter_warmup = 1000L, iter_sampling = 1000L,
+                  seed = 42L, refresh = 0L)
+
+y_tr_ls <- lapply(seq_len(N_tr), function(j) Y_tr[j, ])
+
+# Ordered Dirichlet
+fit_ord_s <- do.call(ord_mod$sample, c(
+  list(data = list(N = N_tr, K = K_sim, P = P_sim, X = X_tr, y = y_tr_ls)),
+  sim_args4))
+
+# Coupled Ordered Dirichlet
+fit_cpl_s <- do.call(coupled_mod$sample, c(
+  list(data = list(N = N_tr, K = K_sim, P = P_sim,
+                   X = X_tr, y = y_tr_ls, eps = 1e-10)),
+  sim_args4))
+
+# ZADR — log_theta from training patterns only
+tr_counts_s <- table(pats_tr)
+lth_tr_s    <- log(as.numeric(tr_counts_s[pats_tr]) / N_tr)
+
+fit_zad_s <- do.call(zadr_mod$sample, c(
+  list(data = list(N = N_tr, K = K_sim, P = P_sim,
+                   X = X_tr, y = y_tr_ls, log_theta = lth_tr_s)),
+  sim_args4))
+
+cat("Rhat check (max across models):\n")
+rhat_max <- max(
+  max(fit_ord_s$summary()$rhat, na.rm = TRUE),
+  max(fit_cpl_s$summary()$rhat, na.rm = TRUE),
+  max(fit_zad_s$summary()$rhat, na.rm = TRUE)
+)
+cat(sprintf("  max Rhat = %.3f\n", rhat_max))
+```
+
+```{r}
+#| label: sim-eval
+#| cache: true
+
+S_se <- 500L   # posterior draws to use for evaluation
+
+d_ord_s <- fit_ord_s$draws(c("beta_raw", "tau", "delta"), format = "df") |>
+  select(-starts_with(".")) |> slice_sample(n = S_se)
+
+d_cpl_s <- fit_cpl_s$draws(c("beta_raw", "tau", "a_rho", "delta"), format = "df") |>
+  select(-starts_with(".")) |> slice_sample(n = S_se)
+
+d_zad_s <- fit_zad_s$draws(c("beta_raw", "phi"), format = "df") |>
+  select(-starts_with(".")) |> slice_sample(n = S_se)
+
+# ZADR log_theta for test observations (unseen patterns get log(1/N_tr))
+lth_te_s <- ifelse(
+  pats_te %in% names(tr_counts_s),
+  log(as.numeric(tr_counts_s[pats_te]) / N_tr),
+  log(1 / N_tr)
+)
+
+# Per-test-observation log predictive density
+lpd_te <- do.call(rbind, lapply(seq_len(N_te), function(j) {
+  y_j <- Y_te[j, ]; x_j <- X_te[j, ]
+
+  lp_o <- vapply(seq_len(S_se), function(s) {
+    b   <- extr_beta_K(d_ord_s[s, ], P_sim, K_sim)
+    del <- as.numeric(d_ord_s[s, paste0("delta[", 1:P_sim, "]")])
+    ord_lpdf_r(y_j, as.vector(t(b) %*% x_j), exp(sum(del * x_j)),
+               as.numeric(d_ord_s$tau[s]))
+  }, numeric(1L))
+
+  lp_c <- vapply(seq_len(S_se), function(s) {
+    b   <- extr_beta_K(d_cpl_s[s, ], P_sim, K_sim)
+    del <- as.numeric(d_cpl_s[s, paste0("delta[", 1:P_sim, "]")])
+    coupled_lpdf_r(y_j, as.vector(t(b) %*% x_j), exp(sum(del * x_j)),
+                   as.numeric(d_cpl_s$tau[s]), as.numeric(d_cpl_s$a_rho[s]))
+  }, numeric(1L))
+
+  lp_z <- vapply(seq_len(S_se), function(s) {
+    b  <- extr_beta_1(d_zad_s[s, ], P_sim, K_sim)
+    mu <- exp(as.vector(t(b) %*% x_j)); mu <- mu / sum(mu)
+    zadr_lpdf_r(y_j, mu, as.numeric(d_zad_s$phi[s]), lth_te_s[j])
+  }, numeric(1L))
+
+  data.frame(
+    obs     = j,
+    x_val   = x_j[2],
+    seen    = pats_te[j] %in% names(tr_counts_s),
+    model   = c("Ordered Dirichlet", "Coupled Ord. Dirichlet", "ZADR (fixed θ)"),
+    lpd     = c(lse(lp_o) - log(S_se),
+                lse(lp_c) - log(S_se),
+                lse(lp_z) - log(S_se))
+  )
+}))
+```
+
+```{r}
+#| label: tbl-sim-elpd
+#| tbl-cap: "Test-set ELPD by model. Higher = better generalisation to new covariate values."
+
+lpd_te |>
+  group_by(model) |>
+  summarise(ELPD = sum(lpd), SE = sd(lpd) * sqrt(N_te), .groups = "drop") |>
+  arrange(desc(ELPD)) |>
+  mutate(delta_ELPD = ELPD - max(ELPD)) |>
+  knitr::kable(digits = 2, col.names = c("Model", "ELPD", "SE", "ΔELPD"))
+```
+
+```{r}
+#| label: fig-sim-lpd
+#| fig-cap: "Per-observation test log predictive density vs covariate x. Each point is one test observation. ZADR (fixed θ) is capped by the log(1/N_train) floor from unseen zero patterns; the parametric models can follow the covariate signal into new territory."
+#| fig-height: 4
+#| fig-width: 9
+
+# Mark the log(1/N_train) floor that limits ZADR on unseen patterns
+zadr_floor <- log(1 / N_tr)
+
+ggplot(lpd_te, aes(x = x_val, y = lpd, colour = model)) +
+  geom_hline(yintercept = zadr_floor, linetype = "dashed",
+             colour = "grey50", linewidth = 0.6) +
+  annotate("text", x = 0.53, y = zadr_floor + 0.3,
+           label = sprintf("log(1/N_train) = %.1f", zadr_floor),
+           size = 3, colour = "grey40", hjust = 0) +
+  geom_point(alpha = 0.55, size = 1.5) +
+  geom_smooth(method = "loess", se = FALSE, span = 0.5, linewidth = 1) +
+  scale_colour_brewer(palette = "Dark2") +
+  labs(title = "Test-set log predictive density vs covariate",
+       x = "x (test region: x > 0.5)", y = "log p(y_i | train)",
+       colour = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "top")
+```
+
+```{r}
+#| label: fig-sim-patterns
+#| fig-cap: "Zero patterns seen in training (left) vs encountered in the test set (right). Each row is one unique pattern; cells are coloured if the component is active. Patterns shift from prey 1–2 dominating in training to prey 4–5 dominating in the test set."
+#| fig-height: 4
+#| fig-width: 9
+
+pat_to_df <- function(pats, split_label) {
+  upats <- unique(pats)
+  do.call(rbind, lapply(upats, function(p) {
+    bits <- as.integer(strsplit(p, ",")[[1]])
+    data.frame(
+      pattern = p,
+      prey    = paste0("prey_", seq_len(K_sim)),
+      active  = bits == 1,
+      count   = sum(pats == p),
+      split   = split_label
+    )
+  }))
+}
+
+pat_df <- rbind(pat_to_df(pats_tr, "Train (x ≤ 0.5)"),
+                pat_to_df(pats_te, "Test (x > 0.5)"))
+
+ggplot(pat_df, aes(x = prey, y = reorder(pattern, count), fill = active)) +
+  geom_tile(colour = "white", linewidth = 0.4) +
+  scale_fill_manual(values = c("TRUE" = "#1b7837", "FALSE" = "#f7f7f7"),
+                    labels = c("TRUE" = "active", "FALSE" = "zero")) +
+  facet_wrap(~split, scales = "free_y") +
+  labs(title = "Active-prey patterns by split",
+       x = NULL, y = "Pattern (sorted by frequency)", fill = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+        legend.position = "top")
+```
+
+------------------------------------------------------------------------
+
+## Summary
+
+```{r}
+#| label: tbl-summary
+#| tbl-cap: "LOO-IC comparison. Lower LOOIC = better out-of-sample predictive accuracy."
+
+loo_tbl |>
+  mutate(delta_looic = looic - min(looic)) |>
+  arrange(looic) |>
+  select(Model = model, Family = family, Covariates = covars,
+         LOOIC = looic, SE = se, `ΔLOOIC` = delta_looic) |>
+  knitr::kable(digits = 1)
+```
+
+**Model structure comparison**
+
+| Feature | zoid | Ordered Dirichlet | Coupled Ord. Dirichlet | ZADR (fixed θ) | ZADR (Bayes θ) |
+|---------|------|-------------------|------------------------|----------------|----------------|
+| Zero mechanism | Per-category zero-inflation | Single shared threshold τ (conditioned on A_i ≠ ∅) | Independent Bernoulli per component; empty set = all-zero row | Empirical (θ_b = n_b/N) | Bayesian (θ ~ Dirichlet) |
+| All-zero rows | No | No (conditioned away) | Yes (native) | Yes (via zero pattern) | Yes (via zero pattern) |
+| Inclusion scale | — | Fixed (a_ρ = 1) | Estimated a_ρ > 0 | — | — |
+| Mean direction | Softmax per-category intercepts | Softmax(β'X) | Softmax(β'X) | Softmax(β'X), renorm. to active | Softmax(β'X), renorm. to active |
+| Precision | Fixed overdispersion φ | Log-linear φ_i = exp(δ'X_i) | Log-linear φ_i = exp(δ'X_i) | Single shared φ | Single shared φ |
+| Parameters (intercept-only) | K − 1 + K overdispersion | (K − 1) + 1 (τ) + 1 (δ) | (K − 1) + 1 (τ) + 1 (a_ρ) + 1 (δ) | (K − 1) + 1 (φ) | (K − 1) + 1 (φ) + B − 1 (θ) |
+| θ uncertainty | — | — | — | None (fixed at MLE) | Full posterior via Dirichlet prior |
+
+The trade-off is flexibility vs parsimony: zoid fits independent zero rates per prey item; the ordered Dirichlet ties sparsity to a single global threshold τ; the coupled ordered Dirichlet relaxes both by adding an inclusion-scale $a_\rho$ and allowing all-zero rows; ZADR (fixed θ) estimates pattern probabilities as plug-in MLEs; ZADR (Bayes θ) propagates uncertainty in pattern probabilities through the posterior via a Dirichlet prior.

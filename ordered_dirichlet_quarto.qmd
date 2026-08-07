@@ -1,0 +1,223 @@
+---
+title: "Ordered Dirichlet Decomposition"
+format: html
+---
+
+## Overview
+
+This document provides an ordered-beta-style decomposition of the ordered Dirichlet model, along with intuitive explanations of each probability component.
+
+We focus on a single component $k$ of a composition $\mathbf{y}_i$.
+
+---
+
+## Model Setup
+
+Let:
+
+- $\rho_{ik} = \operatorname{logit}^{-1}(\theta_{ik} - \tau)$ be the inclusion probability for component $k$.
+- $A_i$ be the active set of components (those that receive positive mass).
+- $C_i = 1 - \prod_{m=1}^K (1 - \rho_{im})$ be the normalization constant (ensures at least one component is active).
+
+---
+
+## Decomposition
+
+We can write:
+
+$$
+y_{ik} \sim
+\begin{cases}
+0, & \Pr(y_{ik}=0) \\
+(0,1), & \Pr(0 < y_{ik} < 1) \\
+1, & \Pr(y_{ik}=1)
+\end{cases}
+$$
+
+---
+
+## Probability of Zero
+
+$$
+\Pr(y_{ik}=0)
+=
+\frac{
+(1-\rho_{ik}) \left[1 - \prod_{m \ne k}(1 - \rho_{im})\right]
+}{
+C_i
+}
+$$
+
+### Intuition
+
+- $1 - \rho_{ik}$: component $k$ is **not selected**.
+- $\prod_{m \ne k}(1 - \rho_{im})$: probability that **no other component is selected**.
+- So:
+  - $1 - \prod_{m \ne k}(1 - \rho_{im})$ = probability that **at least one other component is selected**.
+
+👉 Therefore:
+
+> $\Pr(y_{ik}=0)$ = “$k$ is excluded, but *something else is active*.”
+
+---
+
+## Probability of One
+
+$$
+\Pr(y_{ik}=1)
+=
+\frac{
+\rho_{ik} \prod_{m \ne k}(1 - \rho_{im})
+}{
+C_i
+}
+$$
+
+### Intuition
+
+- $\rho_{ik}$: component $k$ is selected.
+- $\prod_{m \ne k}(1 - \rho_{im})$: no other components are selected.
+
+👉 Therefore:
+
+> $\Pr(y_{ik}=1)$ = “$k$ is the **only** active component.”
+
+This corresponds to a **vertex of the simplex**.
+
+---
+
+## Probability of Interior (0,1)
+
+$$
+\Pr(0 < y_{ik} < 1)
+=
+\frac{
+\rho_{ik} \left[1 - \prod_{m \ne k}(1 - \rho_{im})\right]
+}{
+C_i
+}
+$$
+
+### Intuition
+
+- $\rho_{ik}$: $k$ is included.
+- $1 - \prod_{m \ne k}(1 - \rho_{im})$: at least one *other* component is included.
+
+👉 Therefore:
+
+> $\Pr(0 < y_{ik} < 1)$ = “$k$ participates in a **shared allocation**.”
+
+This corresponds to being on a **face of dimension ≥ 1**.
+
+---
+
+## Key Building Block
+
+The term:
+
+$$
+1 - \prod_{m \ne k}(1 - \rho_{im})
+$$
+
+means:
+
+> “Probability that **at least one other component is active**.”
+
+
+---
+
+## Figure: Ordered Dirichlet Events on the Simplex
+
+The figure below shows the case with three components, \(K=3\). The same logic generalizes to larger simplices.
+
+```{=html}
+<div style="display:flex; justify-content:center; margin-top:1em; margin-bottom:1em;">
+<svg width="620" height="520" viewBox="0 0 620 520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L6,3 z" fill="#333" />
+    </marker>
+  </defs>
+
+  <!-- Triangle -->
+  <polygon points="310,60 90,430 530,430" fill="#f8f8f8" stroke="#111" stroke-width="2"/>
+
+  <!-- Interior -->
+  <circle cx="310" cy="310" r="44" fill="#d9edf7" stroke="#31708f" stroke-width="2"/>
+  <text x="310" y="300" text-anchor="middle" font-size="16" font-family="sans-serif">all active</text>
+  <text x="310" y="322" text-anchor="middle" font-size="14" font-family="sans-serif">0 &lt; y₁,y₂,y₃ &lt; 1</text>
+
+  <!-- Edges -->
+  <line x1="90" y1="430" x2="530" y2="430" stroke="#5cb85c" stroke-width="8" opacity="0.55"/>
+  <line x1="310" y1="60" x2="90" y2="430" stroke="#5cb85c" stroke-width="8" opacity="0.55"/>
+  <line x1="310" y1="60" x2="530" y2="430" stroke="#5cb85c" stroke-width="8" opacity="0.55"/>
+
+  <text x="310" y="455" text-anchor="middle" font-size="15" font-family="sans-serif">edge: two components active</text>
+  <text x="145" y="240" text-anchor="middle" transform="rotate(-59 145,240)" font-size="15" font-family="sans-serif">edge: two active</text>
+  <text x="475" y="240" text-anchor="middle" transform="rotate(59 475,240)" font-size="15" font-family="sans-serif">edge: two active</text>
+
+  <!-- Vertices -->
+  <circle cx="310" cy="60" r="16" fill="#f0ad4e" stroke="#8a6d3b" stroke-width="2"/>
+  <circle cx="90" cy="430" r="16" fill="#f0ad4e" stroke="#8a6d3b" stroke-width="2"/>
+  <circle cx="530" cy="430" r="16" fill="#f0ad4e" stroke="#8a6d3b" stroke-width="2"/>
+
+  <text x="310" y="34" text-anchor="middle" font-size="17" font-family="sans-serif">\(y_1=1\)</text>
+  <text x="58" y="464" text-anchor="middle" font-size="17" font-family="sans-serif">\(y_2=1\)</text>
+  <text x="562" y="464" text-anchor="middle" font-size="17" font-family="sans-serif">\(y_3=1\)</text>
+
+  <!-- Zero labels -->
+  <text x="310" y="410" text-anchor="middle" font-size="16" font-family="sans-serif">\(y_1=0\)</text>
+  <text x="170" y="265" text-anchor="middle" font-size="16" font-family="sans-serif">\(y_3=0\)</text>
+  <text x="450" y="265" text-anchor="middle" font-size="16" font-family="sans-serif">\(y_2=0\)</text>
+
+  <!-- Legend -->
+  <rect x="70" y="20" width="180" height="95" rx="10" fill="white" stroke="#ccc"/>
+  <circle cx="92" cy="45" r="8" fill="#f0ad4e" stroke="#8a6d3b"/>
+  <text x="110" y="50" font-size="14" font-family="sans-serif">vertex: \(y_k=1\)</text>
+  <line x1="82" y1="72" x2="102" y2="72" stroke="#5cb85c" stroke-width="7" opacity="0.55"/>
+  <text x="110" y="77" font-size="14" font-family="sans-serif">edge: one zero</text>
+  <circle cx="92" cy="98" r="8" fill="#d9edf7" stroke="#31708f"/>
+  <text x="110" y="103" font-size="14" font-family="sans-serif">interior face</text>
+</svg>
+</div>
+```
+
+### How to read the figure
+
+- A **vertex** corresponds to a singleton active set: \(A_i=\{k\}\). This gives \(y_{ik}=1\) and all other components equal to zero.
+- An **edge** corresponds to exactly two active components. For example, if \(A_i=\{1,2\}\), then \(y_{i3}=0\), while \(0<y_{i1}<1\) and \(0<y_{i2}<1\).
+- The **interior** corresponds to all three components being active: \(A_i=\{1,2,3\}\), so all components are strictly between zero and one.
+
+For component \(k\), the term
+
+\[
+1-\prod_{m\ne k}(1-\rho_{im})
+\]
+
+is the probability that the active set contains **at least one component other than \(k\)**. In the triangle, this is what distinguishes the vertex event \(y_{ik}=1\) from the shared-allocation event \(0<y_{ik}<1\).
+
+
+---
+
+## Summary
+
+| Event | Interpretation |
+|------|----------------|
+| $y_{ik}=0$ | $k$ excluded, others active |
+| $y_{ik}=1$ | only $k$ active |
+| $0<y_{ik}<1$ | $k$ shares mass with others |
+
+---
+
+## Big Picture
+
+This decomposition mirrors ordered beta regression:
+
+- lower bound (0)
+- interior (0,1)
+- upper bound (1)
+
+but extends it to the **simplex** by modeling:
+
+- *which components are active* (selection)
+- *how mass is allocated* (Dirichlet)
